@@ -10,17 +10,70 @@ import yfinance as yf
 
 
 def fetch_ohlcv(ticker: str, period: str = "6mo", polygon_api_key: Optional[str] = None) -> pd.DataFrame:
-    """Fetch daily OHLCV. Polygon is preferred when a key is supplied; yfinance is fallback."""
+    """Fetch daily OHLCV.
+
+    Priority:
+    1) Polygon, if POLYGON_API_KEY is supplied
+    2) Yahoo Finance via yfinance
+    3) Stooq CSV fallback for US tickers, useful when yfinance returns an empty frame on Streamlit Cloud
+    """
+    ticker = ticker.upper().strip()
     polygon_api_key = polygon_api_key or os.getenv("POLYGON_API_KEY")
+
     if polygon_api_key:
         try:
-            return _fetch_polygon_daily(ticker, period, polygon_api_key)
+            df = _fetch_polygon_daily(ticker, period, polygon_api_key)
+            if not df.empty:
+                return _clean_ohlcv(df)
         except Exception:
             # Fallback keeps the agent usable for experiments.
             pass
-    df = yf.download(ticker, period=period, interval="1d", auto_adjust=False, progress=False)
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.get_level_values(0)
+
+    try:
+        df = yf.download(ticker, period=period, interval="1d", auto_adjust=False, progress=False, threads=False)
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+        df = _clean_ohlcv(df)
+        if not df.empty:
+            return df
+    except Exception:
+        pass
+
+    try:
+        df = _fetch_stooq_daily(ticker, period)
+        df = _clean_ohlcv(df)
+        if not df.empty:
+            return df
+    except Exception:
+        pass
+
+    return pd.DataFrame()
+
+
+def _clean_ohlcv(df: pd.DataFrame) -> pd.DataFrame:
+    if df is None or df.empty:
+        return pd.DataFrame()
+
+    rename_map = {
+        "open": "Open",
+        "high": "High",
+        "low": "Low",
+        "close": "Close",
+        "volume": "Volume",
+    }
+    df = df.rename(columns={c: rename_map.get(str(c).lower(), c) for c in df.columns})
+
+    required = ["Open", "High", "Low", "Close", "Volume"]
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        return pd.DataFrame()
+
+    df = df[required].copy()
+    for col in required:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    df = df.dropna(subset=["Open", "High", "Low", "Close"], how="any")
+    df = df[df["Volume"].fillna(0) >= 0]
     return df.dropna(how="all")
 
 
@@ -51,6 +104,42 @@ def _fetch_polygon_daily(ticker: str, period: str, api_key: str) -> pd.DataFrame
     df["Date"] = pd.to_datetime(df["t"], unit="ms")
     df = df.rename(columns={"o": "Open", "h": "High", "l": "Low", "c": "Close", "v": "Volume"})
     return df.set_index("Date")[["Open", "High", "Low", "Close", "Volume"]]
+
+
+def _fetch_stooq_daily(ticker: str, period: str) -> pd.DataFrame:
+    """Fetch daily OHLCV from Stooq CSV.
+
+    Stooq uses lowercase US symbols with .us suffix, for example AAPL.US or BURU.US.
+    For symbols that already include a market suffix, the function keeps the symbol as-is.
+    """
+    start, end = _period_to_dates(period)
+    d1 = start.replace("-", "")
+    d2 = end.replace("-", "")
+
+    symbol = ticker.lower()
+    if "." not in symbol:
+        symbol = f"{symbol}.us"
+
+    url = "https://stooq.com/q/d/l/"
+    params = {"s": symbol, "i": "d", "d1": d1, "d2": d2}
+    r = requests.get(url, params=params, timeout=30)
+    r.raise_for_status()
+
+    # Stooq returns "No data" as plain text.
+    text = r.text.strip()
+    if not text or text.lower().startswith("no data"):
+        return pd.DataFrame()
+
+    from io import StringIO
+
+    df = pd.read_csv(StringIO(text))
+    if df.empty or "Date" not in df.columns:
+        return pd.DataFrame()
+
+    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+    df = df.dropna(subset=["Date"])
+    df = df.set_index("Date")
+    return df[["Open", "High", "Low", "Close", "Volume"]]
 
 
 def list_us_tickers(limit: int = 5000, polygon_api_key: Optional[str] = None) -> List[str]:
