@@ -205,9 +205,26 @@ def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
     out["MFI14"] = money_flow_index(out)
     out["ADL"] = accumulation_distribution_line(out)
     out["ADLTrend20"] = _slope(out["ADL"], 20)
+    out["ADLPriceDivergence20"] = np.select(
+        [
+            (out["TrendSlope20"] < 0) & (out["ADLTrend20"] > 0),
+            (out["TrendSlope20"] > 0) & (out["ADLTrend20"] < 0),
+        ],
+        [1.0, -1.0],
+        default=0.0,
+    )
     out["VPT"] = volume_price_trend(out)
     out["VPTTrend20"] = _slope(out["VPT"], 20)
+    out["VPTPriceDivergence20"] = np.select(
+        [
+            (out["TrendSlope20"] < 0) & (out["VPTTrend20"] > 0),
+            (out["TrendSlope20"] > 0) & (out["VPTTrend20"] < 0),
+        ],
+        [1.0, -1.0],
+        default=0.0,
+    )
     out["EaseOfMovement14"] = ease_of_movement(out)
+    out["EaseOfMovementTrend5"] = _slope(out["EaseOfMovement14"], 5)
     out["CloseLocationValue"] = close_location_value(out)
     out["DollarVolume"] = close * volume
     out["AvgDollarVolume20"] = out["DollarVolume"].rolling(20).mean()
@@ -233,7 +250,9 @@ def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
     out["DistributionDayCount25"] = out["DistributionDayFlag"].rolling(25).sum()
     out["AccumulationDayFlag"] = ((out["Return1D"] > 1.5) & (volume > volume.shift(1))).astype(float)
     out["AccumulationDayCount25"] = out["AccumulationDayFlag"].rolling(25).sum()
+    out["NetAccumulationDays25"] = out["AccumulationDayCount25"] - out["DistributionDayCount25"]
     out["PocketPivotProxy"] = ((close > out["SMA10"]) & (volume > volume.rolling(10).max().shift(1)) & (out["Return1D"] > 0)).astype(float)
+    out["PocketPivotCount20"] = out["PocketPivotProxy"].rolling(20).sum()
 
     # Price structure
     out["High52W"] = high.rolling(252, min_periods=60).max()
@@ -283,14 +302,15 @@ def latest_indicator_snapshot(df: pd.DataFrame) -> dict:
         "ATR14", "ATRPercent", "TrueRangePct", "RealizedVol20", "BollingerWidthPct",
         # Money flow
         "VWAP", "VWAPDeviationPct", "OBV", "OBVTrend20", "CMF20", "MFI14", "ADL",
-        "ADLTrend20", "VPT", "VPTTrend20", "EaseOfMovement14", "CloseLocationValue",
+        "ADLTrend20", "ADLPriceDivergence20", "VPT", "VPTTrend20", "VPTPriceDivergence20",
+        "EaseOfMovement14", "EaseOfMovementTrend5", "CloseLocationValue",
         "DollarVolume", "AvgDollarVolume20", "AvgVolume30", "RelativeVolume30", "VolumeZ",
         "UpDownVolumeRatio20", "FloatRotationProxy",
         # Tape/gap/price action
         "GapPct", "Return1D", "Return5D", "Return20D", "IntradayReturnPct",
         "HighLowRangePct", "CloseToHighPct", "CloseToLowPct", "OpeningRangeBreakoutProxy",
         "DistributionDayFlag", "DistributionDayCount25", "AccumulationDayFlag",
-        "AccumulationDayCount25", "PocketPivotProxy",
+        "AccumulationDayCount25", "NetAccumulationDays25", "PocketPivotProxy", "PocketPivotCount20",
         # Price structure
         "High52W", "Low52W", "DistanceFrom52WHighPct", "DistanceFrom52WLowPct",
         "Breakout20DFlag", "Breakdown20DFlag",

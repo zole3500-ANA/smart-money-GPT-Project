@@ -28,10 +28,22 @@
     "ceo_cfo_buy_flag": 0
   },
   "dark_pool": {
+    "dark_pool_volume": 4200000,
+    "total_volume": 10000000,
     "dark_pool_volume_ratio": 0.42,
+    "dark_pool_pct_total_volume": 42.0,
     "large_block_trade_count": 14,
+    "large_block_volume": 1850000,
+    "large_block_value_usd": 8250000,
+    "largest_block_value_usd": 2100000,
     "block_price_vs_vwap_pct": 0.35,
-    "dark_pool_net_bias": 0.2
+    "repeated_print_count": 6,
+    "repeated_print_ratio": 0.18,
+    "off_exchange_trend_5d": 6.5,
+    "off_exchange_trend_20d": 12.0,
+    "dark_pool_buy_volume": 2600000,
+    "dark_pool_sell_volume": 1600000,
+    "dark_pool_net_bias": 0.24
   },
   "short_interest": {
     "short_interest_pct_float": 11.5,

@@ -100,12 +100,12 @@ def component_interpretation(component: str, score: float) -> str:
 
     if component == "Dark pool/block":
         if score >= 75:
-            return "มี block trade / dark pool flow ที่ดูหนุนฝั่งบวก"
+            return "dark pool/off-exchange หนุนฝั่งบวกชัด เช่น block เหนือ VWAP หรือ buy bias เด่น"
         if score >= 60:
-            return "กระแส dark pool/block เริ่มดูดี"
+            return "dark pool/off-exchange เริ่มดูดี มีร่องรอย block หรือ buy bias"
         if score >= 40:
-            return "ยังไม่เห็นสัญญาณชัดเจนจาก dark pool/block"
-        return "dark pool/block flow ยังไม่สนับสนุน"
+            return "มี activity นอกกระดานแต่ bias ยังไม่ชัด ต้องดู ratio, VWAP และ net bias"
+        return "dark pool/off-exchange ออกเชิงลบหรือยังไม่สนับสนุน"
 
     if component == "Relative strength":
         if score >= 75:
@@ -177,12 +177,26 @@ def indicator_explanation(name: str, value):
         "VolumeZ": ("Volume Z-Score", "ปริมาณซื้อขายวันนี้สูงกว่าปกติมากน้อยแค่ไหน"),
         "RelativeVolume30": ("Relative Volume 30 วัน", "Volume วันนี้เทียบกับค่าเฉลี่ย 30 วัน ค่า 1 คือปกติ มากกว่า 1 คือคึกคักกว่าปกติ"),
         "CMF20": ("CMF 20 วัน", "ตัวชี้วัดเงินไหลเข้า/ออกจากหุ้น ถ้าค่าบวกแปลว่าแรงซื้อเด่นกว่า"),
-        "MFI14": ("MFI 14 วัน", "RSI ที่รวม Volume เข้าไปด้วย ใช้ดูแรงซื้อแรงขายแบบมีปริมาณเงินประกอบ"),
+        "MFI14": ("Money Flow Index 14 วัน", "RSI แบบรวม Volume เข้าไปด้วย ใช้เห็นแรงซื้อขายพร้อมปริมาณเงิน"),
         "VWAPDeviationPct": ("ราคาห่างจาก VWAP", "ดูว่าราคาปัจจุบันอยู่สูงหรือต่ำกว่าราคาเฉลี่ยถ่วงน้ำหนักด้วย Volume"),
         "OBVTrend20": ("แนวโน้ม OBV 20 วัน", "ดูว่า Volume สะสมกำลังไปทางซื้อหรือขาย"),
+        "ADL": ("Accumulation/Distribution Line", "เส้นเงินสะสมหรือเงินไหลออก ใช้จับ divergence ระหว่างราคาและปริมาณเงิน"),
         "ADLTrend20": ("แนวโน้ม ADL 20 วัน", "ดูแรงสะสม/กระจายหุ้นจากตำแหน่งราคาปิดและ Volume"),
-        "DistributionDayCount25": ("จำนวนวันขายกระจายของ 25 วัน", "นับวันที่ราคาลงพร้อม Volume สูง ใช้จับแรงขายจากรายใหญ่"),
-        "AccumulationDayCount25": ("จำนวนวันสะสมของ 25 วัน", "นับวันที่ราคาขึ้นพร้อม Volume สูง ใช้จับแรงซื้อสะสม"),
+        "ADLPriceDivergence20": ("ADL Divergence 20 วัน", "ดูว่าราคาและ ADL สวนทางกันหรือไม่ ถ้าราคาลงแต่ ADL ขึ้นอาจมีการสะสมเงียบ"),
+        "VPT": ("Volume Price Trend", "ดูว่า Volume สนับสนุนการขึ้นลงของราคาหรือไม่ คล้าย OBV แต่ละเอียดกว่า"),
+        "VPTTrend20": ("แนวโน้ม VPT 20 วัน", "วัดว่า Volume ที่ถ่วงด้วยการเปลี่ยนแปลงราคากำลังหนุนขึ้นหรือลง"),
+        "VPTPriceDivergence20": ("VPT Divergence 20 วัน", "จับสัญญาณราคาและ VPT สวนทางกัน"),
+        "EaseOfMovement14": ("Ease of Movement 14 วัน", "ดูว่าราคาขึ้นง่ายหรือลงง่ายเมื่อเทียบกับ Volume"),
+        "EaseOfMovementTrend5": ("แนวโน้ม Ease of Movement", "ดูทิศทางล่าสุดของการขยับราคาว่าเริ่มง่ายขึ้นหรือยากขึ้น"),
+        "CloseLocationValue": ("Close Location Value", "ดูว่าราคาปิดใกล้ High หรือ Low ของวัน ปิดใกล้ High แปลว่าผู้ซื้อคุมเกมมากกว่า"),
+        "UpDownVolumeRatio20": ("Up/Down Volume Ratio 20 วัน", "Volume วันขึ้นเทียบกับ Volume วันลง ใช้ดูเงินเข้าออก"),
+        "PocketPivotProxy": ("Pocket Pivot Signal", "สัญญาณ Volume เข้าในจังหวะราคาดี เป็น proxy ของการสะสมจากสถาบัน"),
+        "PocketPivotCount20": ("จำนวน Pocket Pivot 20 วัน", "จำนวนครั้งที่เกิด Pocket Pivot ในช่วง 20 วัน"),
+        "DistributionDayFlag": ("Distribution Day ล่าสุด", "วันลงแรงพร้อม Volume สูง ใช้จับแรงขายจากกองทุน"),
+        "DistributionDayCount25": ("Distribution Day Count 25 วัน", "จำนวนวันลงแรงพร้อม Volume สูง ใช้จับกองทุนขาย"),
+        "AccumulationDayFlag": ("Accumulation Day ล่าสุด", "วันขึ้นแรงพร้อม Volume สูง ใช้จับแรงซื้อสะสม"),
+        "AccumulationDayCount25": ("Accumulation Day Count 25 วัน", "จำนวนวันขึ้นแรงพร้อม Volume สูง ใช้จับแรงซื้อสะสม"),
+        "NetAccumulationDays25": ("Net Accumulation Days 25 วัน", "จำนวนวันสะสมลบจำนวนวันกระจายของ ค่าบวกแปลว่าแรงสะสมมากกว่า"),
         "RS_SPY_Return20DSpread": ("แรงเทียบตลาด SPY 20 วัน", "ดูว่าหุ้นตัวนี้แข็งหรืออ่อนกว่า S&P 500 ในช่วง 20 วัน"),
         "RS_QQQ_Return20DSpread": ("แรงเทียบตลาด QQQ 20 วัน", "ดูว่าหุ้นตัวนี้แข็งหรืออ่อนกว่า Nasdaq/หุ้นเทค ในช่วง 20 วัน"),
     }
@@ -283,12 +297,83 @@ def indicator_explanation(name: str, value):
             interpretation = "ราคาอยู่ต่ำกว่า VWAP ฝั่งขายเริ่มได้เปรียบ"
         else:
             interpretation = "ราคาต่ำกว่า VWAP มาก ระวังแรงขายหรือความอ่อนแอ"
-    elif name in {"OBVTrend20", "ADLTrend20"}:
+    elif name in {"ADL", "VPT"}:
+        value_display = _fmt_num(v, decimals=0)
+        interpretation = "ดูทิศทางและ divergence ร่วมกับแนวโน้ม 20 วัน ไม่เน้นดูค่าดิบเดี่ยว ๆ"
+    elif name in {"ADLPriceDivergence20", "VPTPriceDivergence20"}:
+        value_display = _fmt_num(v, decimals=0)
+        if v > 0:
+            interpretation = "Bullish divergence: ราคาอ่อนแต่เส้นสะสมยังดี อาจมีการเก็บของเงียบ"
+        elif v < 0:
+            interpretation = "Bearish divergence: ราคาดูดีแต่เงินสะสมไม่ตาม ระวังขึ้นหลอก"
+        else:
+            interpretation = "ยังไม่พบ divergence ชัดเจน"
+    elif name == "EaseOfMovement14":
         value_display = _fmt_num(v)
         if v > 0:
-            interpretation = "แนวโน้มเป็นบวก สะท้อนการสะสม/แรงซื้อโดยรวม"
+            interpretation = "ราคาขยับขึ้นได้ค่อนข้างง่ายเมื่อเทียบกับ Volume เป็นบวกต่อฝั่งซื้อ"
         elif v < 0:
-            interpretation = "แนวโน้มเป็นลบ สะท้อนการขายออกหรือกระจายของ"
+            interpretation = "ราคาขยับลงง่ายกว่า หรือมีแรงต้านต่อการขึ้น"
+        else:
+            interpretation = "การเคลื่อนที่ของราคายังไม่ชัด"
+    elif name == "CloseLocationValue":
+        value_display = _fmt_num(v)
+        if v >= 0.5:
+            interpretation = "ปิดใกล้ High ของวัน ผู้ซื้อคุมเกมชัดเจน"
+        elif v >= 0.1:
+            interpretation = "ปิดค่อนข้างสูงในกรอบวัน ฝั่งซื้อได้เปรียบ"
+        elif v > -0.1:
+            interpretation = "ปิดกลางกรอบวัน ตลาดยังสมดุล"
+        elif v > -0.5:
+            interpretation = "ปิดค่อนข้างต่ำในกรอบวัน ฝั่งขายได้เปรียบ"
+        else:
+            interpretation = "ปิดใกล้ Low ของวัน ผู้ขายคุมเกมชัดเจน"
+    elif name == "UpDownVolumeRatio20":
+        value_display = _fmt_num(v, suffix="x")
+        if v >= 1.5:
+            interpretation = "Volume วันขึ้นมากกว่าวันลงชัดเจน สะท้อนเงินเข้า"
+        elif v >= 1.05:
+            interpretation = "Volume ฝั่งขึ้นมากกว่าฝั่งลงเล็กน้อย"
+        elif v > 0.95:
+            interpretation = "Volume วันขึ้นและวันลงใกล้เคียงกัน"
+        elif v > 0.67:
+            interpretation = "Volume วันลงเริ่มมากกว่า ต้องระวังแรงขาย"
+        else:
+            interpretation = "Volume วันลงมากกว่าวันขึ้นชัดเจน สะท้อนเงินออก"
+    elif name in {"PocketPivotProxy", "DistributionDayFlag", "AccumulationDayFlag"}:
+        value_display = "เกิดสัญญาณ" if v >= 1 else "ไม่เกิด"
+        if name == "PocketPivotProxy":
+            interpretation = "เกิด Pocket Pivot วันนี้ เป็นสัญญาณบวกเชิงสถาบัน" if v >= 1 else "วันนี้ยังไม่เกิด Pocket Pivot"
+        elif name == "DistributionDayFlag":
+            interpretation = "วันนี้เป็นวันขายกระจายของ ต้องระวัง" if v >= 1 else "วันนี้ยังไม่ใช่วันขายกระจายของ"
+        else:
+            interpretation = "วันนี้เป็นวันสะสม มีแรงซื้อพร้อม Volume" if v >= 1 else "วันนี้ยังไม่ใช่วันสะสม"
+    elif name == "PocketPivotCount20":
+        value_display = _fmt_num(v, decimals=0, suffix=" ครั้ง")
+        if v >= 4:
+            interpretation = "เกิด Pocket Pivot หลายครั้งใน 20 วัน เป็นสัญญาณสะสมที่น่าสนใจ"
+        elif v >= 1:
+            interpretation = "มี Pocket Pivot บ้าง เริ่มมีร่องรอยแรงซื้อคุณภาพ"
+        else:
+            interpretation = "ยังไม่พบ Pocket Pivot ในช่วงล่าสุด"
+    elif name == "NetAccumulationDays25":
+        value_display = _fmt_num(v, decimals=0, suffix=" วัน")
+        if v >= 3:
+            interpretation = "วันสะสมมากกว่าวันกระจายของชัดเจน ภาพเงินใหญ่เป็นบวก"
+        elif v > 0:
+            interpretation = "วันสะสมมากกว่าวันขายเล็กน้อย"
+        elif v == 0:
+            interpretation = "วันสะสมและวันขายสมดุลกัน"
+        elif v > -3:
+            interpretation = "วันขายมากกว่าวันสะสมเล็กน้อย"
+        else:
+            interpretation = "วันขายมากกว่าวันสะสมชัดเจน ต้องระวัง"
+    elif name in {"OBVTrend20", "ADLTrend20", "VPTTrend20", "EaseOfMovementTrend5"}:
+        value_display = _fmt_num(v)
+        if v > 0:
+            interpretation = "แนวโน้มเป็นบวก สะท้อนแรงสะสม/แรงซื้อเริ่มได้เปรียบ"
+        elif v < 0:
+            interpretation = "แนวโน้มเป็นลบ สะท้อนแรงขายหรือการกระจายของ"
         else:
             interpretation = "ยังไม่เห็นทิศทางสะสมหรือขายออกชัดเจน"
     elif name == "DistributionDayCount25":
@@ -325,9 +410,133 @@ def indicator_explanation(name: str, value):
     return display_name, value_display, meaning, interpretation
 
 
-st.set_page_config(page_title="Smart Money Whale Agent v2", layout="wide")
-st.title("🐋 Smart Money Whale Agent v2 — US Stocks")
-st.caption("วิเคราะห์วาฬ / Smart Money จากราคา ปริมาณซื้อขาย VWAP CMF OBV options-flow 13F insider dark-pool short pressure และ relative strength")
+
+def dark_pool_indicator_explanation(name: str, value):
+    """Beginner-friendly explanation for dark-pool/off-exchange optional feed values."""
+    v = _to_float(value)
+
+    catalog = {
+        "dark_pool_volume": ("Dark Pool Volume", "จำนวนหุ้นที่ซื้อขายนอกตลาดหลัก ใช้ดูว่ามีเงินใหญ่ซ่อนอยู่ไหม"),
+        "dark_pool_volume_ratio": ("Dark Pool % of Total Volume", "สัดส่วน volume นอกตลาดหลักเทียบกับ volume ทั้งหมด สูงผิดปกติควรจับตา"),
+        "dark_pool_pct_total_volume": ("Dark Pool % of Total Volume", "สัดส่วน volume นอกตลาดหลักแบบเปอร์เซ็นต์"),
+        "large_block_trade_count": ("Large Block Print", "จำนวนรายการซื้อขายก้อนใหญ่ ใช้ดูว่าวาฬเข้าออกหรือไม่"),
+        "large_block_volume": ("Large Block Volume", "จำนวนหุ้นรวมจากรายการ block trade ขนาดใหญ่"),
+        "large_block_value_usd": ("Large Block Value", "มูลค่ารวมของรายการ block trade ขนาดใหญ่"),
+        "largest_block_value_usd": ("Largest Block Print", "มูลค่ารายการ block trade ก้อนใหญ่ที่สุด"),
+        "block_price_vs_vwap_pct": ("Block Trade Price vs VWAP", "ดูว่า block ซื้อขายแพงหรือถูกกว่า VWAP เพื่ออ่าน bias"),
+        "repeated_print_count": ("Repeated Prints", "จำนวน block ซ้ำหรือรายการขนาดคล้ายกัน อาจสะสมหรือกระจายของ"),
+        "repeated_print_ratio": ("Repeated Print Ratio", "สัดส่วน repeated prints ต่อรายการ block ทั้งหมด"),
+        "off_exchange_trend_5d": ("Off-exchange Trend 5 วัน", "ดูว่า dark pool/off-exchange เพิ่มต่อเนื่องในระยะสั้นไหม"),
+        "off_exchange_trend_20d": ("Off-exchange Trend 20 วัน", "ดูแนวโน้มการเคลื่อนไหวเงียบระยะกลาง"),
+        "dark_pool_buy_volume": ("Dark Pool Buy Volume", "volume ฝั่งซื้อใน dark pool ถ้า provider มี aggressor side"),
+        "dark_pool_sell_volume": ("Dark Pool Sell Volume", "volume ฝั่งขายใน dark pool ถ้า provider มี aggressor side"),
+        "dark_pool_net_bias": ("Dark Pool Net Bias", "ค่า -1 ถึง +1; บวกคือซื้อเด่น ลบคือขายเด่น"),
+    }
+
+    display_name, meaning = catalog.get(name, (name, "ข้อมูลเสริมจาก dark pool/off-exchange feed"))
+    if v is None:
+        return display_name, "ไม่มีข้อมูล", meaning, "ยังไม่มีข้อมูลจาก optional feed"
+
+    value_display = _fmt_num(v)
+
+    if name in {"dark_pool_volume", "large_block_volume", "dark_pool_buy_volume", "dark_pool_sell_volume"}:
+        value_display = _fmt_num(v, decimals=0, suffix=" หุ้น")
+        interpretation = "ใช้ดูขนาดการเคลื่อนไหว ต้องอ่านร่วมกับ total volume และ net bias"
+    elif name in {"large_block_value_usd", "largest_block_value_usd"}:
+        value_display = "$" + _fmt_num(v, decimals=0)
+        if v >= 10_000_000:
+            interpretation = "มูลค่าก้อนใหญ่มาก สะท้อนการเคลื่อนไหวของเงินใหญ่"
+        elif v >= 1_000_000:
+            interpretation = "มี block value ระดับน่าสนใจ ควรอ่านร่วมกับราคาเทียบ VWAP"
+        else:
+            interpretation = "มูลค่า block ยังไม่ใหญ่มาก"
+    elif name in {"dark_pool_volume_ratio", "repeated_print_ratio"}:
+        ratio = v / 100 if v > 1.5 else v
+        value_display = f"{ratio * 100:,.2f}%"
+        if name == "dark_pool_volume_ratio":
+            if ratio >= 0.60:
+                interpretation = "สัดส่วน dark pool สูงมาก มีการซื้อขายนอกกระดานเด่น ควรดู bias ประกอบ"
+            elif ratio >= 0.45:
+                interpretation = "สัดส่วน dark pool สูงกว่าปกติ ควรจับตา"
+            elif ratio >= 0.25:
+                interpretation = "มี off-exchange activity ระดับปานกลาง"
+            else:
+                interpretation = "สัดส่วน dark pool ยังไม่สูง"
+        else:
+            if ratio >= 0.30:
+                interpretation = "มี repeated prints สูง อาจมีการสะสมหรือกระจายเป็นชุด"
+            elif ratio >= 0.10:
+                interpretation = "มี repeated prints ให้ติดตาม"
+            else:
+                interpretation = "repeated prints ยังไม่เด่น"
+    elif name == "dark_pool_pct_total_volume":
+        value_display = _fmt_num(v, suffix="%")
+        if v >= 60:
+            interpretation = "สัดส่วน dark pool สูงมาก ต้องดู net bias และ VWAP เพื่อแยกสะสม/ขาย"
+        elif v >= 45:
+            interpretation = "สัดส่วน dark pool สูง ควรจับตาการเคลื่อนไหวเงียบ"
+        elif v >= 25:
+            interpretation = "สัดส่วนปานกลาง"
+        else:
+            interpretation = "สัดส่วนยังไม่สูง"
+    elif name == "large_block_trade_count":
+        value_display = _fmt_num(v, decimals=0, suffix=" รายการ")
+        if v >= 20:
+            interpretation = "มี block prints จำนวนมาก วาฬ/สถาบันอาจเคลื่อนไหวชัด"
+        elif v >= 5:
+            interpretation = "มี block prints ระดับน่าสนใจ"
+        else:
+            interpretation = "จำนวน block prints ยังไม่มาก"
+    elif name == "block_price_vs_vwap_pct":
+        value_display = _fmt_num(v, suffix="%")
+        if v >= 1:
+            interpretation = "block ซื้อขายเหนือ VWAP ชัดเจน เป็น bias บวก"
+        elif v > 0:
+            interpretation = "block ซื้อขายเหนือ VWAP เล็กน้อย ฝั่งซื้อเริ่มได้เปรียบ"
+        elif v == 0:
+            interpretation = "block ใกล้ VWAP ยังเป็นกลาง"
+        elif v > -1:
+            interpretation = "block ต่ำกว่า VWAP เล็กน้อย ฝั่งขายเริ่มได้เปรียบ"
+        else:
+            interpretation = "block ต่ำกว่า VWAP ชัดเจน เป็น bias ลบ"
+    elif name == "repeated_print_count":
+        value_display = _fmt_num(v, decimals=0, suffix=" ครั้ง")
+        if v >= 10:
+            interpretation = "มี repeated prints หลายครั้ง อาจเป็นการทยอยสะสมหรือทยอยขาย"
+        elif v >= 3:
+            interpretation = "เริ่มมี repeated prints ให้ติดตาม"
+        else:
+            interpretation = "repeated prints ยังไม่เด่น"
+    elif name in {"off_exchange_trend_5d", "off_exchange_trend_20d"}:
+        value_display = _fmt_num(v, suffix="%")
+        if v >= 10:
+            interpretation = "off-exchange เพิ่มขึ้นชัดเจน มีการเคลื่อนไหวเงียบมากขึ้น"
+        elif v > 0:
+            interpretation = "off-exchange เพิ่มขึ้นเล็กน้อย"
+        elif v == 0:
+            interpretation = "off-exchange ไม่เปลี่ยนมาก"
+        else:
+            interpretation = "off-exchange ลดลง"
+    elif name == "dark_pool_net_bias":
+        value_display = _fmt_num(v)
+        if v >= 0.30:
+            interpretation = "buy bias ชัดเจน ฝั่งซื้อใน dark pool เด่น"
+        elif v > 0.05:
+            interpretation = "buy bias เล็กน้อยถึงปานกลาง"
+        elif v >= -0.05:
+            interpretation = "bias ใกล้กลาง ยังแยกฝั่งซื้อขายไม่ชัด"
+        elif v > -0.30:
+            interpretation = "sell bias เล็กน้อยถึงปานกลาง"
+        else:
+            interpretation = "sell bias ชัดเจน ระวังแรงขายซ่อนอยู่"
+    else:
+        interpretation = "ใช้ประกอบกับ dark pool ratio, block price vs VWAP และ net bias"
+
+    return display_name, value_display, meaning, interpretation
+
+st.set_page_config(page_title="Smart Money Whale Agent v2.2", layout="wide")
+st.title("🐋 Smart Money Whale Agent v2.2 — US Stocks")
+st.caption("วิเคราะห์วาฬ / Smart Money จากราคา ปริมาณซื้อขาย VWAP CMF OBV ADL MFI VPT EMV dark-pool off-exchange options-flow 13F insider dark-pool short pressure และ relative strength")
 
 with st.sidebar:
     ticker = st.text_input("Ticker", value="AAPL").upper().strip()
@@ -460,8 +669,13 @@ if run and ticker:
 
     key_cols = [
         "Close", "SMA20", "SMA50", "SMA200", "RSI14", "ATRPercent", "VolumeZ", "RelativeVolume30",
-        "CMF20", "MFI14", "VWAPDeviationPct", "OBVTrend20", "ADLTrend20", "DistributionDayCount25",
-        "AccumulationDayCount25", "RS_SPY_Return20DSpread", "RS_QQQ_Return20DSpread",
+        "CMF20", "MFI14", "VWAPDeviationPct", "OBVTrend20",
+        "ADL", "ADLTrend20", "ADLPriceDivergence20",
+        "VPT", "VPTTrend20", "VPTPriceDivergence20",
+        "EaseOfMovement14", "EaseOfMovementTrend5", "CloseLocationValue", "UpDownVolumeRatio20",
+        "PocketPivotProxy", "PocketPivotCount20", "DistributionDayFlag", "DistributionDayCount25",
+        "AccumulationDayFlag", "AccumulationDayCount25", "NetAccumulationDays25",
+        "RS_SPY_Return20DSpread", "RS_QQQ_Return20DSpread",
     ]
 
     indicator_rows = []
@@ -478,6 +692,94 @@ if run and ticker:
     indicator_df = pd.DataFrame(indicator_rows)
     st.dataframe(indicator_df, use_container_width=True, hide_index=True)
 
+    st.subheader("v2.1 Accumulation / Distribution Indicators")
+    ad_keys = [
+        "ADL", "MFI14", "VPT", "EaseOfMovement14", "CloseLocationValue",
+        "UpDownVolumeRatio20", "PocketPivotProxy", "DistributionDayCount25",
+    ]
+    ad_rows = []
+    for key in ad_keys:
+        raw_value = report.indicators.get(key)
+        display_name, value_display, beginner_meaning, interpretation = indicator_explanation(key, raw_value)
+        ad_rows.append({
+            "Indicator": display_name,
+            "ค่า": value_display,
+            "ความหมาย": beginner_meaning,
+            "การตีความ": interpretation,
+        })
+    st.dataframe(pd.DataFrame(ad_rows), use_container_width=True, hide_index=True)
+
+    st.subheader("v2.2 Dark Pool / Off-exchange Indicators")
+    st.caption(
+        "ข้อมูลกลุ่มนี้มาจาก optional feed เช่น dark-pool provider, block trade provider หรือไฟล์ JSON ที่ใส่เอง "
+        "ถ้าไม่มีข้อมูล ระบบจะแสดงว่าไม่มีข้อมูลและให้คะแนนกลาง"
+    )
+
+    dark_data = report.indicators.get("optional_feeds", {}).get("dark_pool", {})
+    dark_keys = [
+        "dark_pool_volume", "dark_pool_volume_ratio", "large_block_trade_count",
+        "block_price_vs_vwap_pct", "repeated_print_count", "off_exchange_trend_5d",
+        "off_exchange_trend_20d", "dark_pool_net_bias",
+        "large_block_value_usd", "largest_block_value_usd",
+        "dark_pool_buy_volume", "dark_pool_sell_volume",
+    ]
+    dark_rows = []
+    for key in dark_keys:
+        display_name, value_display, meaning, interpretation = dark_pool_indicator_explanation(key, dark_data.get(key))
+        dark_rows.append({
+            "Indicator": display_name,
+            "ค่า": value_display,
+            "ความหมาย": meaning,
+            "ใช้วิเคราะห์ / การตีความ": interpretation,
+        })
+    st.dataframe(pd.DataFrame(dark_rows), use_container_width=True, hide_index=True)
+
+    dark_summary = []
+    dark_ratio = _to_float(dark_data.get("dark_pool_volume_ratio"))
+    if dark_ratio is None:
+        dark_pct = _to_float(dark_data.get("dark_pool_pct_total_volume"))
+        dark_ratio = dark_pct / 100 if dark_pct is not None else None
+    if dark_ratio is not None and dark_ratio > 1.5:
+        dark_ratio = dark_ratio / 100
+
+    block_vs_vwap = _to_float(dark_data.get("block_price_vs_vwap_pct"))
+    net_bias = _to_float(dark_data.get("dark_pool_net_bias"))
+    repeated_count = _to_float(dark_data.get("repeated_print_count"))
+    offtrend_5d = _to_float(dark_data.get("off_exchange_trend_5d"))
+
+    if dark_ratio is not None:
+        if dark_ratio >= 0.45:
+            dark_summary.append("Dark pool ratio สูง: มีการซื้อขายนอกกระดานมาก ควรจับตาเงินใหญ่")
+        else:
+            dark_summary.append("Dark pool ratio ยังไม่สูงมาก")
+
+    if block_vs_vwap is not None:
+        if block_vs_vwap > 0:
+            dark_summary.append("Block trade อยู่เหนือ VWAP: bias เอียงไปทางฝั่งซื้อ")
+        elif block_vs_vwap < 0:
+            dark_summary.append("Block trade ต่ำกว่า VWAP: bias เอียงไปทางฝั่งขาย")
+
+    if net_bias is not None:
+        if net_bias > 0.05:
+            dark_summary.append("Dark pool net bias เป็นบวก: ฝั่งซื้อเด่นกว่า")
+        elif net_bias < -0.05:
+            dark_summary.append("Dark pool net bias เป็นลบ: ฝั่งขายเด่นกว่า")
+        else:
+            dark_summary.append("Dark pool net bias ใกล้กลาง: ยังแยกฝั่งซื้อขายไม่ชัด")
+
+    if repeated_count is not None and repeated_count >= 3:
+        dark_summary.append("มี repeated prints หลายครั้ง: อาจเป็นการทยอยสะสมหรือทยอยกระจายของ")
+
+    if offtrend_5d is not None and offtrend_5d > 0:
+        dark_summary.append("Off-exchange trend 5 วันเพิ่มขึ้น: มีการเคลื่อนไหวเงียบมากขึ้นในระยะสั้น")
+
+    if dark_summary:
+        st.markdown("**สรุป Dark Pool แบบมือใหม่**")
+        for note in dark_summary:
+            st.markdown(f"- {note}")
+    else:
+        st.info("ยังไม่มีข้อมูล Dark Pool / Off-exchange จาก optional feed สำหรับหุ้นตัวนี้")
+
     st.subheader("สรุป Key Indicators แบบภาษาคนเริ่มต้น")
     simple_notes = []
 
@@ -488,6 +790,11 @@ if run and ticker:
     atrp = _to_float(report.indicators.get("ATRPercent"))
     dist_days = _to_float(report.indicators.get("DistributionDayCount25"))
     acc_days = _to_float(report.indicators.get("AccumulationDayCount25"))
+    updown = _to_float(report.indicators.get("UpDownVolumeRatio20"))
+    clv = _to_float(report.indicators.get("CloseLocationValue"))
+    pocket_count = _to_float(report.indicators.get("PocketPivotCount20"))
+    adl_div = _to_float(report.indicators.get("ADLPriceDivergence20"))
+    vpt_div = _to_float(report.indicators.get("VPTPriceDivergence20"))
     rs_spy = _to_float(report.indicators.get("RS_SPY_Return20DSpread"))
 
     if rsi is not None:
@@ -535,6 +842,32 @@ if run and ticker:
             simple_notes.append("วันขายมากกว่าวันสะสม: ต้องระวังแรงขายจากรายใหญ่")
         else:
             simple_notes.append("วันสะสมและวันขายใกล้กัน: ภาพเงินใหญ่ยังไม่ชัดเจน")
+
+
+    if updown is not None:
+        if updown >= 1.2:
+            simple_notes.append("Up/Down Volume Ratio ดี: Volume วันขึ้นมากกว่าวันลง สะท้อนเงินเข้า")
+        elif updown < 0.8:
+            simple_notes.append("Up/Down Volume Ratio อ่อน: Volume วันลงมากกว่า ต้องระวังเงินออก")
+
+    if clv is not None:
+        if clv >= 0.3:
+            simple_notes.append("Close Location Value ดี: ราคาปิดใกล้ High แปลว่าผู้ซื้อคุมเกม")
+        elif clv <= -0.3:
+            simple_notes.append("Close Location Value อ่อน: ราคาปิดใกล้ Low แปลว่าผู้ขายคุมเกม")
+
+    if pocket_count is not None and pocket_count >= 1:
+        simple_notes.append(f"มี Pocket Pivot {int(pocket_count)} ครั้งใน 20 วัน: เป็นร่องรอยแรงซื้อคุณภาพ")
+
+    if adl_div is not None and adl_div > 0:
+        simple_notes.append("ADL bullish divergence: ราคาอ่อนแต่เส้นสะสมยังดี อาจมีการเก็บของเงียบ")
+    elif adl_div is not None and adl_div < 0:
+        simple_notes.append("ADL bearish divergence: ราคาไปต่อแต่เงินสะสมไม่ตาม ระวังขึ้นหลอก")
+
+    if vpt_div is not None and vpt_div > 0:
+        simple_notes.append("VPT bullish divergence: Volume ยังสนับสนุนแม้ราคายังอ่อน")
+    elif vpt_div is not None and vpt_div < 0:
+        simple_notes.append("VPT bearish divergence: ราคาแข็งแต่ volume ไม่หนุน ต้องระวัง")
 
     if rs_spy is not None:
         if rs_spy > 3:

@@ -43,11 +43,17 @@ def smart_money_flow_score(ind: Dict[str, float]) -> float:
     return_1d = _num(ind.get("Return1D"))
     obv_trend = _num(ind.get("OBVTrend20"))
     adl_trend = _num(ind.get("ADLTrend20"))
+    adl_divergence = _num(ind.get("ADLPriceDivergence20"))
+    vpt_trend = _num(ind.get("VPTTrend20"))
+    vpt_divergence = _num(ind.get("VPTPriceDivergence20"))
+    ease_of_movement = _num(ind.get("EaseOfMovement14"))
     updown = _num(ind.get("UpDownVolumeRatio20"), 1)
     clv = _num(ind.get("CloseLocationValue"))
     pocket = _num(ind.get("PocketPivotProxy"))
+    pocket_count = _num(ind.get("PocketPivotCount20"))
     accumulation_days = _num(ind.get("AccumulationDayCount25"))
     distribution_days = _num(ind.get("DistributionDayCount25"))
+    net_accumulation_days = _num(ind.get("NetAccumulationDays25"))
 
     score += clamp(volume_z * 7, -20, 24)
     score += clamp((rel_volume - 1) * 12, -10, 18)
@@ -70,6 +76,18 @@ def smart_money_flow_score(ind: Dict[str, float]) -> float:
         score += 5
     elif adl_trend < 0:
         score -= 5
+    if vpt_trend > 0:
+        score += 5
+    elif vpt_trend < 0:
+        score -= 5
+    if ease_of_movement > 0:
+        score += 3
+    elif ease_of_movement < 0:
+        score -= 3
+    if adl_divergence > 0 or vpt_divergence > 0:
+        score += 7
+    if adl_divergence < 0 or vpt_divergence < 0:
+        score -= 7
     score += clamp((updown - 1) * 8, -8, 10)
     score += clamp(clv * 8, -8, 8)
     if volume_z > 2 and return_1d > 0:
@@ -78,7 +96,8 @@ def smart_money_flow_score(ind: Dict[str, float]) -> float:
         score -= 10
     if pocket > 0:
         score += 6
-    score += clamp((accumulation_days - distribution_days) * 2.5, -12, 12)
+    score += clamp(pocket_count * 1.2, 0, 8)
+    score += clamp(net_accumulation_days * 2.5, -12, 12)
     return clamp(score)
 
 
@@ -306,19 +325,95 @@ def insider_flow_score(insider: Optional[dict]) -> float:
 
 
 def dark_pool_flow_score(dark: Optional[dict]) -> float:
+    """Score dark-pool / off-exchange activity.
+
+    Higher score means the dark-pool tape is more constructive.
+    It is not automatically bullish when off-exchange volume is high;
+    the score needs bias, block price vs VWAP, repeated prints, and trend confirmation.
+    """
     if not dark:
         return 50
+
     score = 50
+
+    dark_volume = _num(dark.get("dark_pool_volume"))
+    total_volume = _num(dark.get("total_volume"))
     ratio = dark.get("dark_pool_volume_ratio")
-    if ratio is not None:
-        ratio = _num(ratio)
-        if ratio > 0.55:
-            score += 2  # high off-exchange activity is notable, not automatically bullish
-        elif ratio < 0.20:
-            score -= 2
-    score += clamp(_num(dark.get("large_block_trade_count")) * 0.8, 0, 12)
-    score += clamp(_num(dark.get("block_price_vs_vwap_pct")) * 8, -12, 12)
-    score += clamp(_num(dark.get("dark_pool_net_bias")) * 20, -20, 20)
+    if ratio is None:
+        ratio = dark.get("dark_pool_pct_total_volume")
+    if ratio is None and total_volume > 0:
+        ratio = dark_volume / total_volume
+    ratio = _num(ratio, 0)
+
+    # Allow either 0.42 or 42 as user input.
+    if ratio > 1.5:
+        ratio = ratio / 100
+
+    block_count = _num(dark.get("large_block_trade_count"))
+    block_volume = _num(dark.get("large_block_volume"))
+    block_value = _num(dark.get("large_block_value_usd"))
+    largest_block_value = _num(dark.get("largest_block_value_usd"))
+    block_price_vs_vwap = _num(dark.get("block_price_vs_vwap_pct"))
+    repeated_count = _num(dark.get("repeated_print_count"))
+    repeated_ratio = _num(dark.get("repeated_print_ratio"))
+    off_ex_trend_5d = _num(dark.get("off_exchange_trend_5d"))
+    off_ex_trend_20d = _num(dark.get("off_exchange_trend_20d"))
+
+    net_bias = dark.get("dark_pool_net_bias")
+    if net_bias is None:
+        buy_volume = _num(dark.get("dark_pool_buy_volume"))
+        sell_volume = _num(dark.get("dark_pool_sell_volume"))
+        if buy_volume + sell_volume > 0:
+            net_bias = (buy_volume - sell_volume) / (buy_volume + sell_volume)
+    net_bias = _num(net_bias)
+
+    # High off-exchange participation is notable but neutral without directional evidence.
+    if ratio >= 0.60:
+        score += 4
+    elif ratio >= 0.45:
+        score += 2
+    elif ratio < 0.15 and ratio > 0:
+        score -= 2
+
+    # Large block prints = whale activity. Direction comes from VWAP/bias.
+    score += clamp(block_count * 0.7, 0, 12)
+    if block_value > 0:
+        score += clamp(math.log10(max(block_value, 1)) - 6, 0, 8)
+    if largest_block_value > 0:
+        score += clamp((math.log10(max(largest_block_value, 1)) - 5.7) * 0.8, 0, 6)
+    if block_volume > 0 and dark_volume > 0:
+        score += clamp((block_volume / max(dark_volume, 1)) * 8, 0, 8)
+
+    # Price above VWAP suggests buyers were willing to pay up; below VWAP is bearish bias.
+    score += clamp(block_price_vs_vwap * 9, -15, 15)
+
+    # Repeated prints can mean accumulation/distribution. Give small activity credit,
+    # then let net bias and VWAP decide direction.
+    score += clamp(repeated_count * 0.5, 0, 8)
+    if repeated_ratio > 1.5:
+        repeated_ratio = repeated_ratio / 100
+    score += clamp(repeated_ratio * 10, 0, 8)
+
+    # Trend in off-exchange activity. Positive trend with positive bias is constructive;
+    # positive trend with negative bias can mean hidden selling.
+    if off_ex_trend_5d > 0 or off_ex_trend_20d > 0:
+        if net_bias > 0:
+            score += clamp((off_ex_trend_5d + off_ex_trend_20d) * 0.35, 0, 10)
+        elif net_bias < 0:
+            score -= clamp((off_ex_trend_5d + off_ex_trend_20d) * 0.35, 0, 10)
+
+    score += clamp(net_bias * 25, -25, 25)
+
+    # Combination rules.
+    if ratio >= 0.45 and block_price_vs_vwap > 0 and net_bias > 0:
+        score += 8
+    if ratio >= 0.45 and block_price_vs_vwap < 0 and net_bias < 0:
+        score -= 8
+    if repeated_count >= 5 and net_bias > 0 and block_price_vs_vwap > 0:
+        score += 6
+    if repeated_count >= 5 and net_bias < 0 and block_price_vs_vwap < 0:
+        score -= 6
+
     return clamp(score)
 
 
@@ -382,13 +477,13 @@ def composite_score(
     optional_feeds = optional_feeds or {}
     weights = weights or {
         "smart_money_flow": 0.25,
-        "technical_trend": 0.18,
-        "options_flow": 0.12,
+        "technical_trend": 0.17,
+        "options_flow": 0.11,
         "short_pressure": 0.10,
         "fundamental_quality": 0.10,
         "institutional_flow": 0.08,
         "insider_flow": 0.05,
-        "dark_pool_flow": 0.04,
+        "dark_pool_flow": 0.06,
         "relative_strength": 0.04,
         "psychology": 0.02,
         "catalyst_risk": 0.02,

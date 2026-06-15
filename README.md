@@ -1,8 +1,61 @@
-# Smart Money Whale Agent v2 — US Stock Indicator Analysis
+# Smart Money Whale Agent v2.2.2 — US Stock Indicator Analysis
 
 Agent สำหรับวิเคราะห์หุ้นอเมริกาโดยเน้น **วาฬ / Smart Money / Institutional behavior** พร้อม pipeline แบบค้นข้อมูล → ตรวจสอบข้อมูล → วิเคราะห์ → สังเคราะห์คะแนน → วิเคราะห์หลายมุมมอง → forecast วันถัดไป
 
 > Research only. This project is not financial advice. Always verify original filings, market data, liquidity, and risk before making decisions.
+
+
+
+## What v2.2 adds
+
+v2.2 เพิ่มชุด **Dark Pool / Off-exchange Indicators** สำหรับจับการซื้อขายนอกกระดานปกติ โดยอ่านจาก optional feed JSON:
+
+| Indicator | ความหมาย | ใช้วิเคราะห์ |
+|---|---|---|
+| Dark Pool Volume | Volume นอกตลาดหลัก | มีเงินใหญ่ซ่อนอยู่ไหม |
+| Dark Pool % of Total Volume | สัดส่วน dark pool | สูงผิดปกติควรจับตา |
+| Large Block Print | รายการซื้อขายก้อนใหญ่ | วาฬเข้าออก |
+| Block Trade Price vs VWAP | block ซื้อแพงหรือถูกกว่า VWAP | ดู bias |
+| Repeated Prints | มี block ซ้ำหลายครั้ง | อาจสะสมหรือกระจาย |
+| Off-exchange Trend | dark pool เพิ่มต่อเนื่องไหม | ดูการเคลื่อนไหวเงียบ |
+| Dark Pool Net Bias | ซื้อหรือขายมากกว่า | ใช้แยก buy bias / sell bias ถ้า provider มี aggressor side |
+
+Dashboard จะมีตารางใหม่ชื่อ `v2.2 Dark Pool / Off-exchange Indicators` พร้อมคำแปลผลภาษาไทยสำหรับมือใหม่
+
+ตัวอย่างไฟล์ optional feed:
+
+```json
+{
+  "dark_pool": {
+    "dark_pool_volume": 4200000,
+    "total_volume": 10000000,
+    "dark_pool_volume_ratio": 0.42,
+    "large_block_trade_count": 14,
+    "block_price_vs_vwap_pct": 0.35,
+    "repeated_print_count": 6,
+    "off_exchange_trend_5d": 6.5,
+    "off_exchange_trend_20d": 12.0,
+    "dark_pool_net_bias": 0.24
+  }
+}
+```
+
+## What v2.1 adds
+
+v2.1 เพิ่มชุด **Accumulation / Distribution Indicators** ตามโจทย์สายวาฬ/Smart Money โดยเน้นจับการสะสมของ, การกระจายของ, volume สนับสนุนราคา และ divergence:
+
+| Indicator | ความหมาย | การตีความ |
+|---|---|---|
+| Accumulation/Distribution Line (ADL) | เงินสะสมหรือไหลออก | ใช้จับ divergence |
+| Money Flow Index (MFI) | RSI แบบรวม volume | เห็นแรงซื้อขายพร้อม volume |
+| Volume Price Trend (VPT) | volume สนับสนุนราคาหรือไม่ | คล้าย OBV แต่ละเอียดกว่า |
+| Ease of Movement (EMV) | ราคาขึ้นง่ายหรือลงง่าย | ดูแรงต้านของตลาด |
+| Close Location Value (CLV) | ปิดใกล้ high หรือ low | ปิดใกล้ high = buyer control |
+| Up/Down Volume Ratio | volume วันขึ้นเทียบวันลง | เงินเข้าหรือออก |
+| Pocket Pivot | volume เข้าในจังหวะ breakout | สัญญาณสถาบันสะสม |
+| Distribution Day Count | วันลงแรง volume สูง | ใช้จับกองทุนขาย |
+
+Dashboard จะมีตารางแปลผลภาษาไทยสำหรับมือใหม่ในหัวข้อ `v2.1 Accumulation / Distribution Indicators`
 
 ## What v2 adds
 
