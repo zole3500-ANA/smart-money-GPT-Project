@@ -1,0 +1,439 @@
+from __future__ import annotations
+
+import math
+from typing import Any, Dict, Optional
+
+from .schemas import SignalScore
+
+
+def clamp(value: float, low: float = 0, high: float = 100) -> float:
+    return max(low, min(high, value))
+
+
+def _num(value: Any, default: float = 0.0) -> float:
+    try:
+        if value is None:
+            return default
+        if isinstance(value, float) and math.isnan(value):
+            return default
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def sigmoid_score(x: float, midpoint: float = 0, scale: float = 1) -> float:
+    try:
+        return 100 / (1 + math.exp(-(x - midpoint) / scale))
+    except OverflowError:
+        return 100 if x > midpoint else 0
+
+
+# -----------------------------
+# Component scores
+# -----------------------------
+
+def smart_money_flow_score(ind: Dict[str, float]) -> float:
+    score = 50
+    volume_z = _num(ind.get("VolumeZ"))
+    rel_volume = _num(ind.get("RelativeVolume30"), 1)
+    cmf = _num(ind.get("CMF20"))
+    mfi = ind.get("MFI14")
+    close = ind.get("Close")
+    vwap = ind.get("VWAP")
+    return_1d = _num(ind.get("Return1D"))
+    obv_trend = _num(ind.get("OBVTrend20"))
+    adl_trend = _num(ind.get("ADLTrend20"))
+    updown = _num(ind.get("UpDownVolumeRatio20"), 1)
+    clv = _num(ind.get("CloseLocationValue"))
+    pocket = _num(ind.get("PocketPivotProxy"))
+    accumulation_days = _num(ind.get("AccumulationDayCount25"))
+    distribution_days = _num(ind.get("DistributionDayCount25"))
+
+    score += clamp(volume_z * 7, -20, 24)
+    score += clamp((rel_volume - 1) * 12, -10, 18)
+    score += clamp(cmf * 70, -22, 22)
+    if mfi is not None:
+        mfi = _num(mfi, 50)
+        if 45 <= mfi <= 75:
+            score += 6
+        elif mfi > 85:
+            score -= 5
+        elif mfi < 25:
+            score -= 5
+    if close and vwap:
+        score += 8 if close > vwap else -8
+    if obv_trend > 0:
+        score += 6
+    elif obv_trend < 0:
+        score -= 6
+    if adl_trend > 0:
+        score += 5
+    elif adl_trend < 0:
+        score -= 5
+    score += clamp((updown - 1) * 8, -8, 10)
+    score += clamp(clv * 8, -8, 8)
+    if volume_z > 2 and return_1d > 0:
+        score += 10
+    if volume_z > 2 and return_1d < -3:
+        score -= 10
+    if pocket > 0:
+        score += 6
+    score += clamp((accumulation_days - distribution_days) * 2.5, -12, 12)
+    return clamp(score)
+
+
+def technical_trend_score(ind: Dict[str, float]) -> float:
+    score = 50
+    close = ind.get("Close")
+    sma20 = ind.get("SMA20")
+    sma50 = ind.get("SMA50")
+    sma200 = ind.get("SMA200")
+    ema8 = ind.get("EMA8")
+    ema21 = ind.get("EMA21")
+    rsi = ind.get("RSI14")
+    hist = _num(ind.get("macd_hist"))
+    roc20 = _num(ind.get("ROC20"))
+    slope20 = _num(ind.get("TrendSlope20"))
+    slope50 = _num(ind.get("TrendSlope50"))
+    breakout = _num(ind.get("Breakout20DFlag"))
+    breakdown = _num(ind.get("Breakdown20DFlag"))
+
+    if close and sma20:
+        score += 6 if close > sma20 else -6
+    if close and sma50:
+        score += 10 if close > sma50 else -10
+    if close and sma200:
+        score += 12 if close > sma200 else -12
+    if sma20 and sma50:
+        score += 7 if sma20 > sma50 else -7
+    if ema8 and ema21:
+        score += 5 if ema8 > ema21 else -5
+    if slope20 > 0:
+        score += 5
+    elif slope20 < 0:
+        score -= 5
+    if slope50 > 0:
+        score += 5
+    elif slope50 < 0:
+        score -= 5
+    if rsi is not None:
+        rsi = _num(rsi, 50)
+        if 45 <= rsi <= 65:
+            score += 7
+        elif 65 < rsi <= 75:
+            score += 4
+        elif rsi > 80:
+            score -= 6
+        elif rsi < 30:
+            score -= 6
+    score += clamp(hist * 50, -10, 10)
+    score += clamp(roc20 * 0.7, -8, 10)
+    if breakout > 0:
+        score += 7
+    if breakdown > 0:
+        score -= 7
+    return clamp(score)
+
+
+def psychology_score(ind: Dict[str, float], sentiment: Optional[dict] = None) -> float:
+    score = 50
+    gap = _num(ind.get("GapPct"))
+    ret = _num(ind.get("Return1D"))
+    intraday = _num(ind.get("IntradayReturnPct"))
+    atr_pct = _num(ind.get("ATRPercent"))
+    rsi = ind.get("RSI14")
+    volume_z = _num(ind.get("VolumeZ"))
+    sentiment = sentiment or {}
+
+    if gap > 3 and ret > 0:
+        score += 10
+    elif gap > 3 and ret < 0:
+        score -= 12
+    elif gap < -3 and ret > 0:
+        score += 9
+    elif gap < -3 and ret < 0:
+        score -= 9
+    if intraday > 2:
+        score += 5
+    elif intraday < -2:
+        score -= 5
+    if atr_pct > 8:
+        score -= 8
+    elif 2 <= atr_pct <= 5:
+        score += 4
+    if rsi is not None:
+        rsi = _num(rsi, 50)
+        if rsi > 82:
+            score -= 9
+        elif rsi < 25 and ret > 0:
+            score += 6
+        elif rsi < 25:
+            score -= 5
+    if volume_z > 3 and ret > 0:
+        score += 6
+    elif volume_z > 3 and ret < 0:
+        score -= 6
+
+    score += clamp(_num(sentiment.get("news_sentiment_score")) * 18, -12, 12)
+    score += clamp(_num(sentiment.get("social_sentiment_score")) * 12, -8, 8)
+    score += clamp(_num(sentiment.get("mention_volume_zscore")) * 3, -6, 9)
+    score += clamp(_num(sentiment.get("analyst_revision_score")) * 18, -10, 10)
+    return clamp(score)
+
+
+def short_pressure_score(short_ratio: Optional[float], optional: Optional[dict] = None, ind: Optional[dict] = None) -> float:
+    optional = optional or {}
+    ind = ind or {}
+    score = 50
+
+    if short_ratio is not None:
+        # High daily short volume is a negative pressure unless price is resisting strongly.
+        score += clamp(20 - _num(short_ratio) * 45, -25, 20)
+
+    short_float = optional.get("short_interest_pct_float")
+    days_to_cover = optional.get("days_to_cover")
+    borrow_fee = optional.get("borrow_fee_rate_pct")
+    short_change = optional.get("short_interest_change_pct")
+    ftd_value = optional.get("fails_to_deliver_value_usd")
+    price_resilience = _num(ind.get("Return5D")) > 0 and _num(ind.get("CMF20")) > 0
+
+    if short_float is not None:
+        short_float = _num(short_float)
+        if short_float > 20 and price_resilience:
+            score += 12  # squeeze setup
+        elif short_float > 20:
+            score -= 12
+        elif short_float > 10 and price_resilience:
+            score += 6
+        elif short_float > 10:
+            score -= 5
+    if days_to_cover is not None:
+        dtc = _num(days_to_cover)
+        if dtc > 5 and price_resilience:
+            score += 9
+        elif dtc > 5:
+            score -= 7
+    if borrow_fee is not None:
+        fee = _num(borrow_fee)
+        if fee > 10 and price_resilience:
+            score += 7
+        elif fee > 10:
+            score -= 5
+    if short_change is not None:
+        score += clamp(-_num(short_change) * 1.2, -8, 8)
+    if ftd_value is not None and _num(ftd_value) > 1_000_000:
+        score -= 4
+    return clamp(score)
+
+
+def fundamental_quality_score(facts: Optional[dict]) -> float:
+    if not facts:
+        return 50
+    score = 50
+    revenue_growth = facts.get("revenue_growth")
+    net_margin = facts.get("net_margin")
+    debt_to_assets = facts.get("debt_to_assets")
+    if revenue_growth is not None:
+        score += clamp(_num(revenue_growth) * 80, -15, 20)
+    if net_margin is not None:
+        score += clamp(_num(net_margin) * 100, -20, 20)
+    if debt_to_assets is not None:
+        score -= clamp((_num(debt_to_assets) - 0.5) * 50, -10, 15)
+    return clamp(score)
+
+
+def options_flow_score(options: Optional[dict]) -> float:
+    if not options:
+        return 50
+    score = 50
+    score += clamp((_num(options.get("unusual_options_volume_ratio"), 1) - 1) * 10, -10, 20)
+    score += clamp((_num(options.get("call_put_volume_ratio"), 1) - 1) * 8, -10, 15)
+    score += clamp((1 - _num(options.get("put_call_ratio"), 1)) * 10, -12, 12)
+    net_call = _num(options.get("net_call_premium_usd"))
+    net_put = _num(options.get("net_put_premium_usd"))
+    total_premium = abs(net_call) + abs(net_put)
+    if total_premium > 0:
+        score += clamp((net_call - net_put) / total_premium * 18, -18, 18)
+    score += clamp(math.log10(max(_num(options.get("sweep_premium_usd")), 1)) - 5, -5, 10)
+    score += clamp(math.log10(max(_num(options.get("block_premium_usd")), 1)) - 5, -5, 8)
+    iv_rank = options.get("iv_rank")
+    if iv_rank is not None:
+        iv = _num(iv_rank)
+        if iv > 80:
+            score -= 7
+        elif 20 <= iv <= 60:
+            score += 4
+    return clamp(score)
+
+
+def institutional_flow_score(institutional: Optional[dict]) -> float:
+    if not institutional:
+        return 50
+    score = 50
+    score += clamp(_num(institutional.get("thirteen_f_net_shares_change_pct")) * 1.3, -20, 20)
+    score += clamp(_num(institutional.get("new_institutional_positions")) * 0.5, 0, 10)
+    increased = _num(institutional.get("increased_positions"))
+    decreased = _num(institutional.get("decreased_positions"))
+    sold_out = _num(institutional.get("sold_out_positions"))
+    if increased + decreased > 0:
+        score += clamp((increased - decreased) / (increased + decreased) * 18, -18, 18)
+    score -= clamp(sold_out * 0.7, 0, 10)
+    own = institutional.get("institutional_ownership_pct")
+    if own is not None:
+        own = _num(own)
+        if 30 <= own <= 85:
+            score += 5
+        elif own > 95:
+            score -= 3
+    return clamp(score)
+
+
+def insider_flow_score(insider: Optional[dict]) -> float:
+    if not insider:
+        return 50
+    score = 50
+    net_buy = _num(insider.get("insider_net_buy_usd"))
+    if net_buy != 0:
+        score += clamp(math.copysign(math.log10(max(abs(net_buy), 1)) - 4.5, net_buy) * 6, -20, 20)
+    buy_count = _num(insider.get("open_market_buy_count_90d"))
+    sell_count = _num(insider.get("open_market_sell_count_90d"))
+    score += clamp((buy_count - sell_count) * 4, -16, 16)
+    if _num(insider.get("cluster_buying_flag")) > 0:
+        score += 10
+    if _num(insider.get("ceo_cfo_buy_flag")) > 0:
+        score += 8
+    return clamp(score)
+
+
+def dark_pool_flow_score(dark: Optional[dict]) -> float:
+    if not dark:
+        return 50
+    score = 50
+    ratio = dark.get("dark_pool_volume_ratio")
+    if ratio is not None:
+        ratio = _num(ratio)
+        if ratio > 0.55:
+            score += 2  # high off-exchange activity is notable, not automatically bullish
+        elif ratio < 0.20:
+            score -= 2
+    score += clamp(_num(dark.get("large_block_trade_count")) * 0.8, 0, 12)
+    score += clamp(_num(dark.get("block_price_vs_vwap_pct")) * 8, -12, 12)
+    score += clamp(_num(dark.get("dark_pool_net_bias")) * 20, -20, 20)
+    return clamp(score)
+
+
+def relative_strength_score(ind: Dict[str, float]) -> float:
+    score = 50
+    spy20 = ind.get("RS_SPY_Return20DSpread")
+    spy60 = ind.get("RS_SPY_Return60DSpread")
+    qqq20 = ind.get("RS_QQQ_Return20DSpread")
+    qqq60 = ind.get("RS_QQQ_Return60DSpread")
+    for value, weight in [(spy20, 1.6), (spy60, 1.0), (qqq20, 1.1), (qqq60, 0.7)]:
+        if value is not None:
+            score += clamp(_num(value) * weight, -12, 12)
+    if _num(ind.get("RS_SPY_Trend20")) > 0:
+        score += 5
+    if _num(ind.get("RS_QQQ_Trend20")) > 0:
+        score += 3
+    return clamp(score)
+
+
+def catalyst_risk_score(catalyst: Optional[dict], filings: Optional[list] = None) -> float:
+    # Higher score means cleaner catalyst profile; lower score means more risk.
+    score = 50
+    catalyst = catalyst or {}
+    filings = filings or []
+    days_to_earnings = catalyst.get("days_to_earnings")
+    if days_to_earnings is not None:
+        days = _num(days_to_earnings)
+        if 0 <= days <= 7:
+            score -= 8
+        elif 8 <= days <= 30:
+            score += 3
+    score += clamp(_num(catalyst.get("earnings_surprise_pct")) * 0.8, -12, 12)
+    score += clamp(_num(catalyst.get("guidance_revision_score")) * 20, -15, 15)
+    if _num(catalyst.get("offering_risk_flag")) > 0:
+        score -= 18
+    if _num(catalyst.get("lawsuit_risk_flag")) > 0:
+        score -= 10
+    if _num(catalyst.get("ma_rumor_flag")) > 0:
+        score += 4
+
+    risky_forms = {"S-1", "S-3", "424B5", "424B3", "8-K"}
+    for filing in filings[:10]:
+        form = str(filing.get("form", "")).upper()
+        if form in risky_forms:
+            score -= 2 if form == "8-K" else 6
+    return clamp(score)
+
+
+# -----------------------------
+# Composite
+# -----------------------------
+
+def composite_score(
+    indicators: dict,
+    facts: Optional[dict],
+    short_ratio: Optional[float],
+    weights: Optional[dict] = None,
+    optional_feeds: Optional[dict] = None,
+    filings: Optional[list] = None,
+) -> SignalScore:
+    optional_feeds = optional_feeds or {}
+    weights = weights or {
+        "smart_money_flow": 0.25,
+        "technical_trend": 0.18,
+        "options_flow": 0.12,
+        "short_pressure": 0.10,
+        "fundamental_quality": 0.10,
+        "institutional_flow": 0.08,
+        "insider_flow": 0.05,
+        "dark_pool_flow": 0.04,
+        "relative_strength": 0.04,
+        "psychology": 0.02,
+        "catalyst_risk": 0.02,
+    }
+
+    sm = smart_money_flow_score(indicators)
+    tech = technical_trend_score(indicators)
+    opt = options_flow_score(optional_feeds.get("options_flow"))
+    sp = short_pressure_score(short_ratio, optional_feeds.get("short_interest"), indicators)
+    fund = fundamental_quality_score(facts)
+    inst = institutional_flow_score(optional_feeds.get("institutional_flow"))
+    insider = insider_flow_score(optional_feeds.get("insider_flow"))
+    dark = dark_pool_flow_score(optional_feeds.get("dark_pool"))
+    rel = relative_strength_score(indicators)
+    psy = psychology_score(indicators, optional_feeds.get("sentiment"))
+    cat = catalyst_risk_score(optional_feeds.get("catalyst"), filings)
+
+    components = {
+        "smart_money_flow": sm,
+        "technical_trend": tech,
+        "options_flow": opt,
+        "short_pressure": sp,
+        "fundamental_quality": fund,
+        "institutional_flow": inst,
+        "insider_flow": insider,
+        "dark_pool_flow": dark,
+        "relative_strength": rel,
+        "psychology": psy,
+        "catalyst_risk": cat,
+    }
+    total_weight = sum(weights.get(k, 0) for k in components) or 1
+    composite = sum(components[k] * weights.get(k, 0) for k in components) / total_weight
+    label = "Bullish" if composite >= 65 else "Bearish" if composite <= 35 else "Neutral"
+    return SignalScore(
+        smart_money_flow=round(sm, 2),
+        technical_trend=round(tech, 2),
+        options_flow=round(opt, 2),
+        short_pressure=round(sp, 2),
+        fundamental_quality=round(fund, 2),
+        institutional_flow=round(inst, 2),
+        insider_flow=round(insider, 2),
+        dark_pool_flow=round(dark, 2),
+        relative_strength=round(rel, 2),
+        psychology=round(psy, 2),
+        catalyst_risk=round(cat, 2),
+        composite=round(clamp(composite), 2),
+        label=label,
+    )

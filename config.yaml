@@ -1,0 +1,26 @@
+agent:
+  lookback_period: "6mo"
+  min_average_dollar_volume: 10000000
+  max_sec_requests_per_second: 8
+  optional_feed_dir: "data/optional_feeds"
+
+weights:
+  smart_money_flow: 0.25
+  technical_trend: 0.18
+  options_flow: 0.12
+  short_pressure: 0.10
+  fundamental_quality: 0.10
+  institutional_flow: 0.08
+  insider_flow: 0.05
+  dark_pool_flow: 0.04
+  relative_strength: 0.04
+  psychology: 0.02
+  catalyst_risk: 0.02
+
+thresholds:
+  bullish: 65
+  bearish: 35
+  whale_volume_zscore: 2.0
+  relative_volume_high: 2.0
+  rsi_overbought: 70
+  rsi_oversold: 30

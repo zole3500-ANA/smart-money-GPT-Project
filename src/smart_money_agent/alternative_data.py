@@ -1,0 +1,104 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+
+def _load_json(path: Path) -> Dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+
+
+def load_optional_feeds(ticker: str, data_dir: str | Path = "data/optional_feeds") -> Dict[str, Any]:
+    """Load optional paid/third-party feeds from local JSON files.
+
+    File pattern:
+        data/optional_feeds/AAPL.json
+
+    This keeps the open-source agent usable without paid options-flow,
+    short-interest, dark-pool, sentiment, or 13F aggregation APIs.
+    """
+    ticker = ticker.upper().strip()
+    root = Path(data_dir)
+    payload = _load_json(root / f"{ticker}.json")
+    return normalize_optional_feeds(payload)
+
+
+def normalize_optional_feeds(payload: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    payload = payload or {}
+    return {
+        "options_flow": payload.get("options_flow", {}),
+        "institutional_flow": payload.get("institutional_flow", {}),
+        "insider_flow": payload.get("insider_flow", {}),
+        "dark_pool": payload.get("dark_pool", {}),
+        "short_interest": payload.get("short_interest", {}),
+        "sentiment": payload.get("sentiment", {}),
+        "catalyst": payload.get("catalyst", {}),
+    }
+
+
+def sample_optional_feed_schema() -> Dict[str, Any]:
+    return {
+        "options_flow": {
+            "unusual_options_volume_ratio": 2.4,
+            "call_put_volume_ratio": 1.8,
+            "put_call_ratio": 0.55,
+            "sweep_premium_usd": 1250000,
+            "block_premium_usd": 800000,
+            "net_call_premium_usd": 650000,
+            "net_put_premium_usd": 120000,
+            "otm_call_share": 0.31,
+            "iv_rank": 44.0,
+            "gamma_exposure_usd": 25000000,
+        },
+        "institutional_flow": {
+            "thirteen_f_net_shares_change_pct": 4.5,
+            "new_institutional_positions": 12,
+            "increased_positions": 84,
+            "decreased_positions": 52,
+            "sold_out_positions": 7,
+            "institutional_ownership_pct": 61.0,
+            "top10_holder_concentration_pct": 28.5,
+        },
+        "insider_flow": {
+            "insider_net_buy_usd": 250000,
+            "open_market_buy_count_90d": 3,
+            "open_market_sell_count_90d": 1,
+            "cluster_buying_flag": 1,
+            "ceo_cfo_buy_flag": 0,
+        },
+        "dark_pool": {
+            "dark_pool_volume_ratio": 0.42,
+            "large_block_trade_count": 14,
+            "block_price_vs_vwap_pct": 0.35,
+            "dark_pool_net_bias": 0.2,
+        },
+        "short_interest": {
+            "short_interest_pct_float": 11.5,
+            "days_to_cover": 3.2,
+            "borrow_fee_rate_pct": 4.7,
+            "shares_available_to_borrow": 2500000,
+            "short_interest_change_pct": 1.3,
+            "fails_to_deliver_value_usd": 120000,
+        },
+        "sentiment": {
+            "news_sentiment_score": 0.15,
+            "social_sentiment_score": 0.05,
+            "mention_volume_zscore": 1.4,
+            "google_trends_zscore": 0.8,
+            "analyst_revision_score": 0.2,
+        },
+        "catalyst": {
+            "days_to_earnings": 18,
+            "earnings_surprise_pct": 7.5,
+            "guidance_revision_score": 0.25,
+            "offering_risk_flag": 0,
+            "lawsuit_risk_flag": 0,
+            "ma_rumor_flag": 0,
+        },
+    }

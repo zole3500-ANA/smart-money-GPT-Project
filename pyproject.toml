@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "smart-money-agent"
+version = "0.2.0"
+description = "Smart Money Whale Agent v2 for US stock indicator analysis"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{name = "Smart Money Agent"}]
+dependencies = [
+  "pandas>=2.2.0",
+  "numpy>=1.26.0",
+  "requests>=2.32.0",
+  "python-dotenv>=1.0.1",
+  "pydantic>=2.7.0",
+  "yfinance>=0.2.40",
+  "streamlit>=1.35.0",
+  "plotly>=5.22.0",
+  "pyyaml>=6.0.1"
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.2.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
