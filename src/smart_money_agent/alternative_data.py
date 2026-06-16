@@ -29,16 +29,25 @@ def load_optional_feeds(ticker: str, data_dir: str | Path = "data/optional_feeds
     return normalize_optional_feeds(payload)
 
 
+def _first_payload(payload: Dict[str, Any], *keys: str) -> Dict[str, Any]:
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, dict) and value:
+            return value
+    return {}
+
+
 def normalize_optional_feeds(payload: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     payload = payload or {}
     return {
-        "options_flow": payload.get("options_flow", {}),
-        "institutional_flow": payload.get("institutional_flow", {}),
-        "insider_flow": payload.get("insider_flow", {}),
-        "dark_pool": payload.get("dark_pool", {}),
-        "short_interest": payload.get("short_interest", {}),
-        "sentiment": payload.get("sentiment", {}),
-        "catalyst": payload.get("catalyst", {}),
+        "options_flow": _first_payload(payload, "options_flow", "options"),
+        "institutional_flow": _first_payload(payload, "institutional_flow", "institutional"),
+        "insider_flow": _first_payload(payload, "insider_flow", "insider"),
+        "dark_pool": payload.get("dark_pool", {}) if isinstance(payload.get("dark_pool", {}), dict) else {},
+        "short_interest": payload.get("short_interest", {}) if isinstance(payload.get("short_interest", {}), dict) else {},
+        "sentiment": payload.get("sentiment", {}) if isinstance(payload.get("sentiment", {}), dict) else {},
+        "catalyst": payload.get("catalyst", {}) if isinstance(payload.get("catalyst", {}), dict) else {},
+        "_meta": payload.get("_meta", {}) if isinstance(payload.get("_meta", {}), dict) else {},
     }
 
 

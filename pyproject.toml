@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "smart-money-agent"
-version = "0.2.7"
-description = "Smart Money Whale Agent v2.7.2 for US stock indicator analysis"
+version = "0.2.8"
+description = "Smart Money Whale Agent v2.8.2 for US stock indicator analysis"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{name = "Smart Money Agent"}]

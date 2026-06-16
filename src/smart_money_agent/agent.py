@@ -6,6 +6,7 @@ from typing import Optional
 from .alternative_data import load_optional_feeds
 from .data_sources.finra import short_sale_ratio_for_ticker
 from .data_sources.market import fetch_ohlcv
+from .data_sources.public_free import collect_public_optional_feeds, merge_optional_feeds, has_payload
 from .data_sources.sec_edgar import extract_simple_fundamentals, get_company_facts, recent_filings_summary
 from .indicators import add_indicators, add_relative_strength, latest_indicator_snapshot
 from .prediction import forecast_next_day
@@ -21,6 +22,8 @@ class SmartMoneyAgentConfig:
     use_sec: bool = True
     use_relative_strength: bool = True
     optional_feed_dir: str = "data/optional_feeds"
+    use_public_free_sources: bool = True
+    sec_user_agent: Optional[str] = None
 
 
 class SmartMoneyWhaleAgent:
@@ -112,19 +115,37 @@ class SmartMoneyWhaleAgent:
             )
         )
 
-        # 5) Optional paid / alternative data feeds from local JSON
+        # 5) Optional paid / alternative data feeds from local JSON + no-API-key public/proxy sources
         optional_feeds = load_optional_feeds(ticker, self.config.optional_feed_dir)
-        optional_present = [k for k, v in optional_feeds.items() if v]
+        local_present = [k for k, v in optional_feeds.items() if k != "_meta" and v]
         verification.append(
             VerificationResult(
-                source="optional_feeds",
-                is_fresh=bool(optional_present),
-                confidence=0.80 if optional_present else 0.30,
+                source="optional_local_json_feeds",
+                is_fresh=bool(local_present),
+                confidence=0.80 if local_present else 0.10,
                 notes=[
-                    "Loaded: " + ", ".join(optional_present) if optional_present else "No optional local JSON feed found; neutral defaults used for paid-data modules."
+                    "Loaded local JSON: " + ", ".join(local_present) if local_present else "No local optional JSON feed found."
                 ],
             )
         )
+
+        if self.config.use_public_free_sources:
+            public_feeds = collect_public_optional_feeds(
+                ticker,
+                finra_date_yyyymmdd=self.config.finra_date_yyyymmdd,
+                sec_user_agent=self.config.sec_user_agent,
+            )
+            optional_feeds = merge_optional_feeds(optional_feeds, public_feeds)
+            for group, meta in (public_feeds.get("_meta") or {}).items():
+                payload = public_feeds.get(group, {})
+                verification.append(
+                    VerificationResult(
+                        source=f"public_free_{group}",
+                        is_fresh=has_payload(payload),
+                        confidence=float(meta.get("confidence", 0.0)),
+                        notes=[meta.get("source", "public_free")] + list(meta.get("notes", [])),
+                    )
+                )
 
         # 6) Synthesize scores
         score = composite_score(

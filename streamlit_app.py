@@ -156,9 +156,18 @@ def render_status_html_table(df: pd.DataFrame) -> str:
 
 
 def show_status_dataframe(df: pd.DataFrame, interpretation_col: str | None = None):
-    """Display readable wrapped table with status icon and color."""
+    """Display readable wrapped table with status icon and color.
+
+    Returns False when the table has no actual values, allowing optional tables to be effectively hidden.
+    """
     status_df = add_status_columns(df, interpretation_col=interpretation_col)
+    if "ค่า" in status_df.columns:
+        values = [str(x).strip() for x in status_df["ค่า"].tolist()]
+        no_data_values = {"ไม่มีข้อมูล", "", "nan", "None"}
+        if values and all(v in no_data_values for v in values):
+            return False
     st.markdown(render_status_html_table(status_df), unsafe_allow_html=True)
+    return True
 
 
 def status_legend():
@@ -172,6 +181,77 @@ def status_legend():
         unsafe_allow_html=True,
     )
 
+
+
+def feed_has_data(payload: dict) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    for key, value in payload.items():
+        if str(key).startswith("_"):
+            continue
+        if value not in (None, "", [], {}):
+            return True
+    return False
+
+
+def get_optional_feed(report, *keys: str) -> dict:
+    feeds = report.indicators.get("optional_feeds", {}) if report else {}
+    for key in keys:
+        payload = feeds.get(key, {})
+        if feed_has_data(payload):
+            return payload
+    return {}
+
+
+def get_feed_meta(report, *keys: str) -> dict:
+    feeds = report.indicators.get("optional_feeds", {}) if report else {}
+    meta = feeds.get("_meta", {}) if isinstance(feeds.get("_meta", {}), dict) else {}
+    for key in keys:
+        if isinstance(meta.get(key), dict):
+            return meta[key]
+    return {}
+
+
+def confidence_text(confidence) -> str:
+    try:
+        c = float(confidence)
+    except Exception:
+        return "ไม่ระบุ"
+    pct = int(round(c * 100))
+    if c >= 0.75:
+        return f"สูง {pct}%"
+    if c >= 0.50:
+        return f"กลาง {pct}%"
+    if c > 0:
+        return f"ต่ำ {pct}%"
+    return "ไม่มีข้อมูล"
+
+
+def show_feed_confidence(report, *keys: str):
+    meta = get_feed_meta(report, *keys)
+    if not meta:
+        return
+    source = meta.get("source", "ไม่ระบุแหล่งข้อมูล")
+    conf = confidence_text(meta.get("confidence", 0))
+    fresh = meta.get("freshness", "unknown")
+    notes = meta.get("notes", [])
+    st.markdown(
+        f"<div style='padding:0.6rem 0.8rem;margin:0.35rem 0 0.75rem 0;border:1px solid #e5e7eb;"
+        f"border-radius:12px;background:#f8fafc;color:#111827;'>"
+        f"<strong>ทวนสอบข้อมูล:</strong> แหล่งข้อมูล = <code>{source}</code> | "
+        f"<strong>ความมั่นใจ:</strong> {conf} | <strong>ความสด:</strong> {fresh}"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+    if notes:
+        with st.expander("รายละเอียดการทวนสอบ / ข้อจำกัดของข้อมูล", expanded=False):
+            for note in notes:
+                st.markdown(f"- {note}")
+
+
+def show_hidden_tables_note(hidden_tables: list[str]):
+    if hidden_tables:
+        st.info("ตารางที่ถูกซ่อนเพราะไม่พบข้อมูลที่ทวนสอบได้: " + ", ".join(hidden_tables))
 
 def score_level(score: float) -> str:
 
@@ -962,8 +1042,8 @@ def dark_pool_indicator_explanation(name: str, value):
 
     return display_name, value_display, meaning, interpretation
 
-st.set_page_config(page_title="Smart Money Whale Agent v2.7", layout="wide")
-st.title("🐋 Smart Money Whale Agent v2.7 — US Stocks")
+st.set_page_config(page_title="Smart Money Whale Agent v2.8", layout="wide")
+st.title("🐋 Smart Money Whale Agent v2.8 — US Stocks")
 st.caption("วิเคราะห์วาฬ / Smart Money จากราคา ปริมาณซื้อขาย VWAP CMF OBV ADL MFI VPT EMV options flow institutional 13F insider trading whale ownership dark-pool off-exchange 13F insider dark-pool short pressure และ relative strength")
 
 with st.sidebar:
@@ -972,6 +1052,8 @@ with st.sidebar:
     finra_date = st.text_input("FINRA date YYYYMMDD (optional)", value="") or None
     optional_feed_dir = st.text_input("Optional feed directory", value="data/optional_feeds")
     use_sec = st.checkbox("Use SEC EDGAR", value=False)
+    use_public_free = st.checkbox("Use free public sources / No API key", value=True)
+    sec_user_agent = st.text_input("SEC User-Agent email (recommended)", value="")
     use_rs = st.checkbox("Use relative strength vs SPY/QQQ", value=True)
     run = st.button("Analyze", type="primary")
 
@@ -988,6 +1070,8 @@ if run and ticker:
             use_sec=use_sec,
             use_relative_strength=use_rs,
             optional_feed_dir=optional_feed_dir,
+            use_public_free_sources=use_public_free,
+            sec_user_agent=sec_user_agent or None,
         )
     )
 
@@ -1122,6 +1206,8 @@ if run and ticker:
     status_legend()
     show_status_dataframe(indicator_df, interpretation_col="แปลผลตอนนี้")
 
+    hidden_optional_tables = []
+
     st.subheader("v2.1 Accumulation / Distribution Indicators")
     status_legend()
     ad_keys = [
@@ -1147,7 +1233,11 @@ if run and ticker:
         "เพราะข้อมูล sweep, aggressor side, premium และ gamma มักต้องใช้ผู้ให้บริการเฉพาะทาง"
     )
 
-    options_data = report.indicators.get("optional_feeds", {}).get("options", {})
+    options_data = get_optional_feed(report, "options_flow", "options")
+    if not feed_has_data(options_data):
+        hidden_optional_tables.append("Options Flow")
+    else:
+        show_feed_confidence(report, "options_flow", "options")
     options_keys = [
         "unusual_options_volume",
         "call_volume",
@@ -1239,7 +1329,11 @@ if run and ticker:
         "ข้อมูลกลุ่มนี้ใช้ optional feed เช่น 13F aggregator หรือข้อมูลผู้ถือหุ้นสถาบัน "
         "เพราะ 13F เป็นข้อมูลรายไตรมาสและมีความล่าช้า ไม่ใช่ real-time"
     )
-    inst_data = report.indicators.get("optional_feeds", {}).get("institutional", {})
+    inst_data = get_optional_feed(report, "institutional_flow", "institutional")
+    if not feed_has_data(inst_data):
+        hidden_optional_tables.append("Institutional / Whale Ownership")
+    else:
+        show_feed_confidence(report, "institutional_flow", "institutional")
     inst_keys = [
         "net_institutional_flow_pct", "new_positions_count", "increased_positions_count",
         "decreased_positions_count", "sold_out_positions_count", "top10_holder_concentration_pct",
@@ -1309,7 +1403,11 @@ if run and ticker:
         "ควรอ่านร่วมกับเหตุผลการขาย เพราะบางรายการเช่น option exercise then sell อาจไม่ใช่สัญญาณลบเสมอ"
     )
 
-    insider_data = report.indicators.get("optional_feeds", {}).get("insider", {})
+    insider_data = get_optional_feed(report, "insider_flow", "insider")
+    if not feed_has_data(insider_data):
+        hidden_optional_tables.append("Insider Trading")
+    else:
+        show_feed_confidence(report, "insider_flow", "insider")
     insider_keys = [
         "insider_net_buy_value_usd",
         "insider_buy_count",
@@ -1387,7 +1485,11 @@ if run and ticker:
         "ถ้าไม่มีข้อมูล ระบบจะแสดงว่าไม่มีข้อมูลและให้คะแนนกลาง"
     )
 
-    dark_data = report.indicators.get("optional_feeds", {}).get("dark_pool", {})
+    dark_data = get_optional_feed(report, "dark_pool")
+    if not feed_has_data(dark_data):
+        hidden_optional_tables.append("Dark Pool / Off-exchange")
+    else:
+        show_feed_confidence(report, "dark_pool")
     dark_keys = [
         "dark_pool_volume", "dark_pool_volume_ratio", "large_block_trade_count",
         "block_price_vs_vwap_pct", "repeated_print_count", "off_exchange_trend_5d",
@@ -1554,6 +1656,8 @@ if run and ticker:
             st.markdown(f"- {note}")
     else:
         st.info("ยังไม่มีข้อมูล Key Indicators เพียงพอสำหรับสรุปแบบภาษาง่าย")
+
+    show_hidden_tables_note(hidden_optional_tables)
 
     st.subheader("Raw JSON")
     st.json(report.model_dump())
