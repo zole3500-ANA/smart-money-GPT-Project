@@ -67,5 +67,53 @@
     "offering_risk_flag": 0,
     "lawsuit_risk_flag": 0,
     "ma_rumor_flag": 0
+  },
+  "institutional": {
+    "net_institutional_flow_pct": 3.2,
+    "net_institutional_flow_value_usd": 12500000,
+    "new_positions_count": 8,
+    "increased_positions_count": 21,
+    "decreased_positions_count": 12,
+    "sold_out_positions_count": 3,
+    "top10_holder_concentration_pct": 38.5,
+    "institutional_ownership_pct": 42.3,
+    "qoq_holding_change_pct": 4.8,
+    "whale_accumulation_score": 68
+  },
+  "insider": {
+    "insider_net_buy_value_usd": 1850000,
+    "insider_buy_count": 5,
+    "insider_sell_count": 1,
+    "ceo_cfo_transaction_count": 2,
+    "ceo_cfo_net_buy_value_usd": 750000,
+    "cluster_buying_count": 3,
+    "buy_size_vs_salary_ratio": 1.8,
+    "option_exercise_then_sell_count": 1,
+    "direct_open_market_buy_count": 4,
+    "direct_open_market_buy_value_usd": 1650000
+  },
+  "options": {
+    "unusual_options_volume": 185000,
+    "unusual_options_volume_z": 4.2,
+    "call_volume": 132000,
+    "put_volume": 53000,
+    "call_put_volume_ratio": 2.49,
+    "put_call_ratio": 0.4,
+    "options_volume_open_interest_ratio": 2.15,
+    "sweep_order_count": 18,
+    "sweep_premium_usd": 3250000,
+    "options_block_trade_count": 11,
+    "block_trade_premium_usd": 2100000,
+    "premium_paid_usd": 7200000,
+    "aggressor_side": "ask",
+    "near_term_call_premium_usd": 2600000,
+    "near_term_put_premium_usd": 900000,
+    "leaps_call_premium_usd": 1800000,
+    "leaps_put_premium_usd": 550000,
+    "otm_call_premium_usd": 2300000,
+    "otm_put_premium_usd": 750000,
+    "gamma_exposure": 12500000,
+    "gamma_exposure_pct_float": 1.8,
+    "bullish_premium_ratio": 0.73
   }
 }

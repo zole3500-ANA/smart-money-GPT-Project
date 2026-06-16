@@ -1,10 +1,92 @@
-# Smart Money Whale Agent v2.2.2 — US Stock Indicator Analysis
+# Smart Money Whale Agent v2.6.2 — US Stock Indicator Analysis
 
 Agent สำหรับวิเคราะห์หุ้นอเมริกาโดยเน้น **วาฬ / Smart Money / Institutional behavior** พร้อม pipeline แบบค้นข้อมูล → ตรวจสอบข้อมูล → วิเคราะห์ → สังเคราะห์คะแนน → วิเคราะห์หลายมุมมอง → forecast วันถัดไป
 
 > Research only. This project is not financial advice. Always verify original filings, market data, liquidity, and risk before making decisions.
 
 
+
+
+
+
+
+## What v2.6 adds
+
+v2.6 เพิ่ม **สัญลักษณ์และสีในทุกตารางแปลผล** เพื่อให้มือใหม่อ่านง่ายขึ้น:
+
+| สัญลักษณ์ | สี | ความหมาย |
+|---|---|---|
+| 🟢 | เขียว | บวก / น่าสนใจ / มีแรงสนับสนุน |
+| 🟡 | เหลือง | กลาง ๆ / รอดู / ยังไม่ชัด |
+| 🔴 | แดง | ลบ / ต้องระวัง / มีแรงกดดัน |
+
+ตารางที่อัปเดต:
+- Component Scores
+- Key Indicators
+- Accumulation / Distribution
+- Options Flow
+- Insider Trading
+- Institutional / Whale Ownership
+- Dark Pool / Off-exchange
+
+## What v2.5 adds
+
+v2.5 เพิ่มตาราง **Options Flow Indicators** สำหรับจับวาฬระยะสั้นจาก optional feed:
+
+| Indicator | ความหมาย | การตีความ |
+|---|---|---|
+| Unusual Options Volume | Volume options สูงผิดปกติ | มีคน bet ใหญ่ |
+| Call Volume | ปริมาณซื้อขาย Call | มองขึ้น |
+| Put Volume | ปริมาณซื้อขาย Put | มองลงหรือ hedge |
+| Call/Put Volume Ratio | Call เทียบ Put | สูง = bullish sentiment |
+| Put/Call Ratio | Put เทียบ Call | สูง = fear หรือ hedge |
+| Options Volume / Open Interest | Volume เทียบ OI | สูง = มีสถานะใหม่ |
+| Sweep Orders | คำสั่งไล่ซื้อหลายตลาด | วาฬเร่งเข้า |
+| Block Trades | รายการใหญ่ | เงินก้อนใหญ่ |
+| Premium Paid | มูลค่า options ที่จ่าย | ดูขนาดเงินจริง |
+| Aggressor Side | ซื้อที่ ask หรือขายที่ bid | แยกว่าเปิด bullish/bearish |
+| Near-term Expiry Flow | options ใกล้หมดอายุ | เก็งกำไรระยะสั้น |
+| LEAPS Flow | options อายุยาว | มุมมองระยะยาว |
+| OTM Call Buying | ซื้อ call นอกเงิน | เก็งขึ้นแรง |
+| OTM Put Buying | ซื้อ put นอกเงิน | เก็งลงแรงหรือประกัน |
+| Gamma Exposure | dealer gamma | คาดแรงเหวี่ยง |
+
+Dashboard จะมีหัวข้อใหม่ `v2.5 Options Flow Indicators` พร้อมคำอธิบายภาษาไทยสำหรับมือใหม่
+
+## What v2.4 adds
+
+v2.4 เพิ่มตาราง **Insider Trading Indicators** สำหรับจับพฤติกรรมผู้บริหารซื้อ/ขายหุ้นจาก optional feed:
+
+| Indicator | ความหมาย | การตีความ |
+|---|---|---|
+| Insider Net Buy/Sell | ผู้บริหารซื้อหรือขายสุทธิ | ซื้อ = บวก, ขาย = ต้องดูเหตุผล |
+| Insider Buy Count | จำนวนรายการซื้อ | ซื้อหลายคนพร้อมกันน่าสนใจ |
+| Insider Sell Count | จำนวนรายการขาย | ขายเยอะอาจกดดัน |
+| CEO/CFO Transaction | ผู้บริหารระดับสูงซื้อขาย | น้ำหนักสูงกว่าคนทั่วไป |
+| Cluster Buying | ผู้บริหารหลายคนซื้อพร้อมกัน | สัญญาณบวกแรง |
+| Buy Size vs Salary | มูลค่าซื้อเทียบฐานะผู้บริหาร | ซื้อเยอะผิดปกติน่าสนใจ |
+| Option Exercise then Sell | ใช้สิทธิแล้วขาย | อาจไม่ใช่ลบเสมอ |
+| Direct Open Market Buy | ซื้อในตลาดจริง | สัญญาณบวกที่สุดในกลุ่ม insider |
+
+Dashboard จะมีหัวข้อใหม่ `v2.4 Insider Trading Indicators` พร้อมคำอธิบายภาษาไทยสำหรับมือใหม่
+
+## What v2.3 adds
+
+v2.3 เพิ่มตาราง **Institutional / Whale Ownership Indicators** สำหรับจับการเคลื่อนไหวของกองทุนและผู้ถือหุ้นสถาบันจาก optional feed:
+
+| Indicator | ความหมาย | สำคัญอย่างไร |
+|---|---|---|
+| 13F Net Institutional Flow | กองทุนเพิ่มหรือลดหุ้นสุทธิ | จับเงินสถาบัน |
+| New Institutional Positions | มีกองทุนเปิดสถานะใหม่กี่ราย | ดูความสนใจใหม่ |
+| Increased Positions | กองทุนเดิมซื้อเพิ่ม | สัญญาณสะสม |
+| Decreased Positions | กองทุนเดิมลดพอร์ต | สัญญาณขาย |
+| Sold Out Positions | กองทุนขายหมด | สัญญาณลบ |
+| Top 10 Holder Concentration | ผู้ถือหุ้นใหญ่ถือรวมกี่ % | ดูความกระจุกตัว |
+| Institutional Ownership % | สถาบันถือหุ้นกี่ % | หุ้นมีเจ้ามือสถาบันไหม |
+| Quarter-over-quarter Holding Change | เปลี่ยนจากไตรมาสก่อนเท่าไร | ดู trend การสะสม |
+| Whale Accumulation Score | คะแนนสะสมโดยรายใหญ่ | ใช้รวมเป็น smart money score |
+
+Dashboard จะมีหัวข้อใหม่ `v2.3 Institutional / Whale Ownership Indicators` พร้อมคำอธิบายภาษาไทยสำหรับมือใหม่
 
 ## What v2.2 adds
 

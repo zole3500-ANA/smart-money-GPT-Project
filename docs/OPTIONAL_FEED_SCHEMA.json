@@ -18,5 +18,53 @@
     "dark_pool_buy_volume": "number; estimated buyer-initiated dark-pool volume if provider supports aggressor side",
     "dark_pool_sell_volume": "number; estimated seller-initiated dark-pool volume if provider supports aggressor side",
     "dark_pool_net_bias": "number; -1 to +1; positive = buy bias, negative = sell bias"
+  },
+  "institutional": {
+    "net_institutional_flow_pct": "13F net institutional holding change; 3.2 = +3.2%",
+    "net_institutional_flow_value_usd": "estimated net buy/sell value",
+    "new_positions_count": "funds opening new positions",
+    "increased_positions_count": "existing holders increasing positions",
+    "decreased_positions_count": "existing holders decreasing positions",
+    "sold_out_positions_count": "funds sold out completely",
+    "top10_holder_concentration_pct": "top 10 holders concentration percentage",
+    "institutional_ownership_pct": "institutional ownership percentage",
+    "qoq_holding_change_pct": "quarter-over-quarter institutional holding change",
+    "whale_accumulation_score": "0-100 score; higher means stronger whale accumulation"
+  },
+  "insider": {
+    "insider_net_buy_value_usd": "number; insider buys minus sells in USD; positive = net buy",
+    "insider_buy_count": "number; count of insider buy transactions",
+    "insider_sell_count": "number; count of insider sell transactions",
+    "ceo_cfo_transaction_count": "number; CEO/CFO transaction count",
+    "ceo_cfo_net_buy_value_usd": "number; CEO/CFO net buy/sell USD",
+    "cluster_buying_count": "number; number of insiders buying in a cluster/window",
+    "buy_size_vs_salary_ratio": "number; insider buy size compared with salary/compensation",
+    "option_exercise_then_sell_count": "number; exercise-and-sell events; lightly bearish/neutral",
+    "direct_open_market_buy_count": "number; direct open-market purchase count",
+    "direct_open_market_buy_value_usd": "number; direct open-market purchase value"
+  },
+  "options": {
+    "unusual_options_volume": "number; options volume spike",
+    "unusual_options_volume_z": "number; z-score of options volume vs normal",
+    "call_volume": "number; call option volume",
+    "put_volume": "number; put option volume",
+    "call_put_volume_ratio": "number; call volume / put volume",
+    "put_call_ratio": "number; put volume / call volume",
+    "options_volume_open_interest_ratio": "number; options volume / open interest",
+    "sweep_order_count": "number; sweep order count",
+    "sweep_premium_usd": "number; USD premium in sweeps",
+    "options_block_trade_count": "number; options block trade count",
+    "block_trade_premium_usd": "number; USD premium in block trades",
+    "premium_paid_usd": "number; total premium paid",
+    "aggressor_side": "string; ask/buy/bid/sell/mid",
+    "near_term_call_premium_usd": "number; near-term call premium",
+    "near_term_put_premium_usd": "number; near-term put premium",
+    "leaps_call_premium_usd": "number; long-dated call premium",
+    "leaps_put_premium_usd": "number; long-dated put premium",
+    "otm_call_premium_usd": "number; out-of-the-money call premium",
+    "otm_put_premium_usd": "number; out-of-the-money put premium",
+    "gamma_exposure": "number; dealer gamma exposure",
+    "gamma_exposure_pct_float": "number; gamma exposure as % of float",
+    "bullish_premium_ratio": "number; bullish premium / total directional premium"
   }
 }

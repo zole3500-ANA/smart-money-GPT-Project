@@ -262,65 +262,274 @@ def fundamental_quality_score(facts: Optional[dict]) -> float:
 
 
 def options_flow_score(options: Optional[dict]) -> float:
+    """Score short-term whale options flow from optional options-flow feed.
+
+    Higher score = options tape supports bullish/accumulation setup.
+    Lower score = put-heavy, bearish aggressor, or negative gamma setup.
+    """
     if not options:
         return 50
+
     score = 50
-    score += clamp((_num(options.get("unusual_options_volume_ratio"), 1) - 1) * 10, -10, 20)
-    score += clamp((_num(options.get("call_put_volume_ratio"), 1) - 1) * 8, -10, 15)
-    score += clamp((1 - _num(options.get("put_call_ratio"), 1)) * 10, -12, 12)
-    net_call = _num(options.get("net_call_premium_usd"))
-    net_put = _num(options.get("net_put_premium_usd"))
-    total_premium = abs(net_call) + abs(net_put)
-    if total_premium > 0:
-        score += clamp((net_call - net_put) / total_premium * 18, -18, 18)
-    score += clamp(math.log10(max(_num(options.get("sweep_premium_usd")), 1)) - 5, -5, 10)
-    score += clamp(math.log10(max(_num(options.get("block_premium_usd")), 1)) - 5, -5, 8)
-    iv_rank = options.get("iv_rank")
-    if iv_rank is not None:
-        iv = _num(iv_rank)
-        if iv > 80:
-            score -= 7
-        elif 20 <= iv <= 60:
-            score += 4
+
+    unusual_volume = _num(options.get("unusual_options_volume"))
+    unusual_volume_z = _num(options.get("unusual_options_volume_z"))
+    call_volume = _num(options.get("call_volume"))
+    put_volume = _num(options.get("put_volume"))
+    call_put_ratio = options.get("call_put_volume_ratio")
+    put_call_ratio = options.get("put_call_ratio")
+    options_vol_oi = _num(options.get("options_volume_open_interest_ratio"))
+    sweep_count = _num(options.get("sweep_order_count", options.get("sweep_count")))
+    sweep_premium = _num(options.get("sweep_premium_usd"))
+    block_trade_count = _num(options.get("options_block_trade_count", options.get("block_trade_count")))
+    block_premium = _num(options.get("block_trade_premium_usd"))
+    premium_paid = _num(options.get("premium_paid_usd", options.get("premium_usd")))
+    aggressor_side = str(options.get("aggressor_side", "")).lower().strip()
+    near_term_call_premium = _num(options.get("near_term_call_premium_usd"))
+    near_term_put_premium = _num(options.get("near_term_put_premium_usd"))
+    leaps_call_premium = _num(options.get("leaps_call_premium_usd"))
+    leaps_put_premium = _num(options.get("leaps_put_premium_usd"))
+    otm_call_premium = _num(options.get("otm_call_premium_usd"))
+    otm_put_premium = _num(options.get("otm_put_premium_usd"))
+    gamma_exposure = _num(options.get("gamma_exposure", options.get("dealer_gamma_exposure")))
+    gamma_exposure_pct_float = _num(options.get("gamma_exposure_pct_float"))
+    bullish_premium_ratio = options.get("bullish_premium_ratio")
+
+    if call_put_ratio is None and put_volume > 0:
+        call_put_ratio = call_volume / put_volume
+    call_put_ratio = _num(call_put_ratio, 1)
+
+    if put_call_ratio is None and call_volume > 0:
+        put_call_ratio = put_volume / call_volume
+    put_call_ratio = _num(put_call_ratio, 1)
+
+    if bullish_premium_ratio is None:
+        bullish_premium = near_term_call_premium + leaps_call_premium + otm_call_premium
+        bearish_premium = near_term_put_premium + leaps_put_premium + otm_put_premium
+        if bullish_premium + bearish_premium > 0:
+            bullish_premium_ratio = bullish_premium / (bullish_premium + bearish_premium)
+    bullish_premium_ratio = _num(bullish_premium_ratio, 0.5)
+
+    # Unusual options activity.
+    score += clamp(unusual_volume_z * 4, -8, 18)
+    if unusual_volume > 0:
+        score += clamp(math.log10(unusual_volume + 1) - 4, 0, 8)
+
+    # Direction from calls vs puts.
+    score += clamp((call_put_ratio - 1) * 9, -16, 18)
+    score -= clamp((put_call_ratio - 1) * 8, -8, 18)
+
+    # Volume/OI > 1 often means new positions are being opened.
+    if options_vol_oi >= 2:
+        score += 8
+    elif options_vol_oi >= 1:
+        score += 5
+    elif options_vol_oi > 0 and options_vol_oi < 0.5:
+        score -= 2
+
+    # Sweeps imply urgency. Bias comes from aggressor/premium mix.
+    score += clamp(sweep_count * 0.9, 0, 12)
+    if sweep_premium > 0:
+        score += clamp(math.log10(sweep_premium + 1) - 5, 0, 10)
+
+    # Block trades = large money, but direction must be inferred.
+    score += clamp(block_trade_count * 0.5, 0, 8)
+    if block_premium > 0:
+        score += clamp(math.log10(block_premium + 1) - 5, 0, 8)
+
+    if premium_paid > 0:
+        score += clamp(math.log10(premium_paid + 1) - 5.5, 0, 12)
+
+    # Aggressor side: ask = buyer-initiated, bid = seller-initiated.
+    if aggressor_side in {"ask", "buy", "buyer", "bought_at_ask"}:
+        score += 10
+    elif aggressor_side in {"bid", "sell", "seller", "sold_at_bid"}:
+        score -= 10
+    elif aggressor_side in {"mid", "neutral"}:
+        score += 0
+
+    # Premium mix.
+    score += clamp((bullish_premium_ratio - 0.5) * 35, -18, 18)
+
+    # Near-term calls are speculative bullish. Near-term puts can be hedge or bearish.
+    if near_term_call_premium + near_term_put_premium > 0:
+        nt_bias = (near_term_call_premium - near_term_put_premium) / max(near_term_call_premium + near_term_put_premium, 1)
+        score += clamp(nt_bias * 10, -10, 10)
+
+    # LEAPS call premium supports long-term bullish view.
+    if leaps_call_premium + leaps_put_premium > 0:
+        leaps_bias = (leaps_call_premium - leaps_put_premium) / max(leaps_call_premium + leaps_put_premium, 1)
+        score += clamp(leaps_bias * 8, -8, 8)
+
+    # OTM calls can signal upside speculation; OTM puts can signal downside speculation/hedge.
+    if otm_call_premium + otm_put_premium > 0:
+        otm_bias = (otm_call_premium - otm_put_premium) / max(otm_call_premium + otm_put_premium, 1)
+        score += clamp(otm_bias * 10, -10, 10)
+
+    # Gamma exposure: positive can dampen moves, negative can amplify volatility.
+    if gamma_exposure > 0:
+        score += 3
+    elif gamma_exposure < 0:
+        score -= 3
+
+    if gamma_exposure_pct_float != 0:
+        score += clamp(gamma_exposure_pct_float * 0.5, -6, 6)
+
+    # Combination rules.
+    if sweep_count >= 5 and aggressor_side in {"ask", "buy", "buyer", "bought_at_ask"} and call_put_ratio > 1.5:
+        score += 8
+    if put_call_ratio > 1.5 and aggressor_side in {"bid", "sell", "seller", "sold_at_bid"}:
+        score -= 8
+    if options_vol_oi >= 2 and call_put_ratio > 1.5 and premium_paid > 1_000_000:
+        score += 8
+    if options_vol_oi >= 2 and put_call_ratio > 1.5 and premium_paid > 1_000_000:
+        score -= 8
+
     return clamp(score)
 
 
 def institutional_flow_score(institutional: Optional[dict]) -> float:
+    """Score institutional / whale ownership flow from optional 13F-style feed."""
     if not institutional:
         return 50
+
     score = 50
-    score += clamp(_num(institutional.get("thirteen_f_net_shares_change_pct")) * 1.3, -20, 20)
-    score += clamp(_num(institutional.get("new_institutional_positions")) * 0.5, 0, 10)
-    increased = _num(institutional.get("increased_positions"))
-    decreased = _num(institutional.get("decreased_positions"))
-    sold_out = _num(institutional.get("sold_out_positions"))
-    if increased + decreased > 0:
-        score += clamp((increased - decreased) / (increased + decreased) * 18, -18, 18)
-    score -= clamp(sold_out * 0.7, 0, 10)
-    own = institutional.get("institutional_ownership_pct")
-    if own is not None:
-        own = _num(own)
-        if 30 <= own <= 85:
-            score += 5
-        elif own > 95:
-            score -= 3
+
+    # Backward compatible keys + v2.3 keys
+    net_flow_pct = _num(
+        institutional.get("net_institutional_flow_pct",
+        institutional.get("thirteen_f_net_shares_change_pct"))
+    )
+    net_flow_value = _num(institutional.get("net_institutional_flow_value_usd"))
+    new_positions = _num(
+        institutional.get("new_positions_count",
+        institutional.get("new_institutional_positions"))
+    )
+    increased_positions = _num(
+        institutional.get("increased_positions_count",
+        institutional.get("increased_positions"))
+    )
+    decreased_positions = _num(
+        institutional.get("decreased_positions_count",
+        institutional.get("decreased_positions"))
+    )
+    sold_out_positions = _num(
+        institutional.get("sold_out_positions_count",
+        institutional.get("sold_out_positions"))
+    )
+    top10_concentration = _num(institutional.get("top10_holder_concentration_pct"))
+    ownership_pct = _num(institutional.get("institutional_ownership_pct"))
+    qoq_change_pct = _num(institutional.get("qoq_holding_change_pct"))
+    whale_acc_score = _num(institutional.get("whale_accumulation_score"))
+
+    if abs(net_flow_pct) <= 1 and net_flow_pct != 0:
+        net_flow_pct *= 100
+    if abs(top10_concentration) <= 1 and top10_concentration != 0:
+        top10_concentration *= 100
+    if abs(ownership_pct) <= 1 and ownership_pct != 0:
+        ownership_pct *= 100
+    if abs(qoq_change_pct) <= 1 and qoq_change_pct != 0:
+        qoq_change_pct *= 100
+
+    score += clamp(net_flow_pct * 1.2, -18, 18)
+    if net_flow_value != 0:
+        score += clamp((math.log10(abs(net_flow_value) + 1) - 6) * (1 if net_flow_value > 0 else -1), -8, 8)
+
+    score += clamp(new_positions * 0.9, 0, 10)
+    score += clamp(increased_positions * 0.45, 0, 12)
+    score -= clamp(decreased_positions * 0.45, 0, 12)
+    score -= clamp(sold_out_positions * 0.8, 0, 14)
+
+    if ownership_pct >= 35:
+        score += 7
+    elif ownership_pct >= 15:
+        score += 4
+    elif ownership_pct > 0 and ownership_pct < 8:
+        score -= 3
+
+    if top10_concentration >= 55:
+        score -= 1  # sponsor benefit but concentration risk
+    elif top10_concentration >= 25:
+        score += 4
+
+    score += clamp(qoq_change_pct * 1.1, -15, 15)
+
+    if whale_acc_score:
+        if whale_acc_score <= 1:
+            whale_acc_score *= 100
+        score += clamp((whale_acc_score - 50) * 0.35, -18, 18)
+
+    if net_flow_pct > 0 and increased_positions > decreased_positions and qoq_change_pct > 0:
+        score += 8
+    if net_flow_pct < 0 and decreased_positions + sold_out_positions > increased_positions:
+        score -= 8
+    if new_positions >= 5 and qoq_change_pct > 0:
+        score += 4
+    if sold_out_positions >= 5 and qoq_change_pct < 0:
+        score -= 5
+
     return clamp(score)
 
 
 def insider_flow_score(insider: Optional[dict]) -> float:
+    """Score insider trading behavior from optional Form 4 / insider transaction feed.
+
+    Higher score = insider behavior supports accumulation.
+    Lower score = insider selling or weak insider sponsorship.
+    """
     if not insider:
         return 50
+
     score = 50
-    net_buy = _num(insider.get("insider_net_buy_usd"))
-    if net_buy != 0:
-        score += clamp(math.copysign(math.log10(max(abs(net_buy), 1)) - 4.5, net_buy) * 6, -20, 20)
-    buy_count = _num(insider.get("open_market_buy_count_90d"))
-    sell_count = _num(insider.get("open_market_sell_count_90d"))
-    score += clamp((buy_count - sell_count) * 4, -16, 16)
-    if _num(insider.get("cluster_buying_flag")) > 0:
+
+    # Backward-compatible keys + v2.4 keys
+    net_buy_value = _num(insider.get("insider_net_buy_value_usd", insider.get("net_buy_value_usd")))
+    buy_count = _num(insider.get("insider_buy_count", insider.get("buy_count")))
+    sell_count = _num(insider.get("insider_sell_count", insider.get("sell_count")))
+    ceo_cfo_net_buy_value = _num(insider.get("ceo_cfo_net_buy_value_usd"))
+    ceo_cfo_transaction_count = _num(insider.get("ceo_cfo_transaction_count"))
+    cluster_buying_count = _num(insider.get("cluster_buying_count"))
+    buy_size_vs_salary = _num(insider.get("buy_size_vs_salary_ratio"))
+    option_exercise_then_sell_count = _num(insider.get("option_exercise_then_sell_count"))
+    direct_open_market_buy_count = _num(insider.get("direct_open_market_buy_count"))
+    direct_open_market_buy_value = _num(insider.get("direct_open_market_buy_value_usd"))
+
+    if net_buy_value != 0:
+        score += clamp((math.log10(abs(net_buy_value) + 1) - 5) * (1 if net_buy_value > 0 else -1) * 4, -22, 22)
+
+    if buy_count + sell_count > 0:
+        score += clamp((buy_count - sell_count) / max(buy_count + sell_count, 1) * 18, -18, 18)
+
+    if ceo_cfo_net_buy_value != 0:
+        score += clamp((math.log10(abs(ceo_cfo_net_buy_value) + 1) - 4.7) * (1 if ceo_cfo_net_buy_value > 0 else -1) * 3.5, -16, 16)
+
+    # Senior executive transactions matter more than ordinary officers.
+    if ceo_cfo_transaction_count > 0 and ceo_cfo_net_buy_value > 0:
+        score += clamp(ceo_cfo_transaction_count * 1.5, 0, 8)
+    elif ceo_cfo_transaction_count > 0 and ceo_cfo_net_buy_value < 0:
+        score -= clamp(ceo_cfo_transaction_count * 1.5, 0, 8)
+
+    score += clamp(cluster_buying_count * 3.0, 0, 18)
+    score += clamp(buy_size_vs_salary * 5.0, 0, 15)
+
+    # Exercise-then-sell is not always bearish, so penalize lightly.
+    score -= clamp(option_exercise_then_sell_count * 1.2, 0, 8)
+
+    # Direct open market buys are the highest-quality insider signal.
+    score += clamp(direct_open_market_buy_count * 3.0, 0, 18)
+    if direct_open_market_buy_value > 0:
+        score += clamp((math.log10(direct_open_market_buy_value + 1) - 5) * 4, 0, 16)
+
+    # Combination rules.
+    if cluster_buying_count >= 2 and direct_open_market_buy_count >= 1 and net_buy_value > 0:
         score += 10
-    if _num(insider.get("ceo_cfo_buy_flag")) > 0:
-        score += 8
+    if sell_count >= 5 and buy_count == 0 and net_buy_value < 0:
+        score -= 10
+    if ceo_cfo_net_buy_value > 0 and direct_open_market_buy_value > 0:
+        score += 6
+    if ceo_cfo_net_buy_value < 0 and sell_count > buy_count:
+        score -= 6
+
     return clamp(score)
 
 
@@ -476,14 +685,14 @@ def composite_score(
 ) -> SignalScore:
     optional_feeds = optional_feeds or {}
     weights = weights or {
-        "smart_money_flow": 0.25,
-        "technical_trend": 0.17,
-        "options_flow": 0.11,
+        "smart_money_flow": 0.23,
+        "technical_trend": 0.15,
+        "options_flow": 0.14,
         "short_pressure": 0.10,
         "fundamental_quality": 0.10,
-        "institutional_flow": 0.08,
+        "institutional_flow": 0.09,
         "insider_flow": 0.05,
-        "dark_pool_flow": 0.06,
+        "dark_pool_flow": 0.05,
         "relative_strength": 0.04,
         "psychology": 0.02,
         "catalyst_risk": 0.02,
