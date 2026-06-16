@@ -79,38 +79,102 @@ def add_status_columns(df: pd.DataFrame, interpretation_col: str | None = None) 
     return out
 
 
-def style_status_table(df: pd.DataFrame):
-    """Color rows by status for beginner-friendly interpretation."""
-    def row_style(row):
-        status = str(row.get("สถานะ", "กลาง"))
-        if status == "บวก":
-            return ["background-color: rgba(34, 197, 94, 0.18); color: #dcfce7;"] * len(row)
-        if status == "ลบ":
-            return ["background-color: rgba(239, 68, 68, 0.18); color: #fee2e2;"] * len(row)
-        return ["background-color: rgba(234, 179, 8, 0.16); color: #fef3c7;"] * len(row)
 
+def style_status_table(df: pd.DataFrame):
+    """Deprecated in v2.7: keep for compatibility."""
+    return df
+
+
+def render_status_html_table(df: pd.DataFrame) -> str:
+    """Render a readable wrapped HTML table with dark text and row colors."""
     if df is None or df.empty:
-        return df
-    if "สถานะ" not in df.columns:
-        return df
-    return df.style.apply(row_style, axis=1)
+        return "<div style='padding:0.75rem;border:1px solid #e5e7eb;border-radius:12px;background:#ffffff;color:#111827;'>ไม่มีข้อมูล</div>"
+
+    columns = list(df.columns)
+    # Column width hints
+    width_map = {
+        "สัญญาณ": "56px",
+        "สถานะ": "72px",
+        "Indicator": "18%",
+        "ค่า": "9%",
+        "ความหมาย": "23%",
+        "การตีความ": "28%",
+        "สำคัญอย่างไร / การตีความ": "28%",
+        "ใช้วิเคราะห์ / การตีความ": "28%",
+        "แปลผลตอนนี้": "24%",
+        "คำแปลความหมาย": "26%",
+    }
+
+    def row_colors(status: str):
+        status = str(status)
+        if status == "บวก":
+            return ("#ecfdf5", "#065f46", "#a7f3d0")
+        if status == "ลบ":
+            return ("#fef2f2", "#991b1b", "#fecaca")
+        return ("#fffbeb", "#92400e", "#fde68a")
+
+    html = []
+    html.append("""
+    <style>
+    .sm-wrap-table-wrap {width:100%; overflow-x:hidden; margin:0.35rem 0 1rem 0;}
+    .sm-wrap-table {width:100%; border-collapse:separate; border-spacing:0; table-layout:fixed; font-size:14px; color:#111827; background:#ffffff; border:1px solid #e5e7eb; border-radius:14px; overflow:hidden;}
+    .sm-wrap-table thead th {background:#f8fafc; color:#334155; font-weight:700; text-align:left; padding:10px 10px; border-bottom:1px solid #e5e7eb; white-space:normal; word-break:break-word;}
+    .sm-wrap-table tbody td {padding:10px 10px; vertical-align:top; border-bottom:1px solid #e5e7eb; white-space:normal; overflow-wrap:anywhere; word-break:break-word; line-height:1.35;}
+    .sm-wrap-table tbody tr:last-child td {border-bottom:none;}
+    .sm-wrap-table .sm-center {text-align:center;}
+    .sm-wrap-table .sm-badge {display:inline-block; padding:2px 8px; border-radius:999px; font-weight:700; font-size:12px;}
+    @media (max-width: 900px) {
+      .sm-wrap-table {font-size:13px;}
+      .sm-wrap-table thead th, .sm-wrap-table tbody td {padding:8px 8px;}
+    }
+    </style>
+    """)
+    html.append("<div class='sm-wrap-table-wrap'><table class='sm-wrap-table'>")
+    html.append("<thead><tr>")
+    for col in columns:
+        w = width_map.get(col, "auto")
+        align = " sm-center" if col in {"สัญญาณ", "สถานะ", "ค่า"} else ""
+        html.append(f"<th class='{align.strip()}' style='width:{w};'>{col}</th>")
+    html.append("</tr></thead><tbody>")
+
+    for _, row in df.iterrows():
+        status = row.get("สถานะ", "กลาง")
+        bg, text_color, border = row_colors(status)
+        html.append(f"<tr style='background:{bg}; color:{text_color};'>")
+        for col in columns:
+            val = "" if pd.isna(row[col]) else str(row[col])
+            align = "sm-center" if col in {"สัญญาณ", "สถานะ", "ค่า"} else ""
+            if col == "สถานะ":
+                badge_bg = "#d1fae5" if status == "บวก" else ("#fee2e2" if status == "ลบ" else "#fef3c7")
+                badge_color = "#065f46" if status == "บวก" else ("#991b1b" if status == "ลบ" else "#92400e")
+                val = f"<span class='sm-badge' style='background:{badge_bg}; color:{badge_color}; border:1px solid {border};'>{val}</span>"
+            html.append(f"<td class='{align}'>{val}</td>")
+        html.append("</tr>")
+
+    html.append("</tbody></table></div>")
+    return "".join(html)
 
 
 def show_status_dataframe(df: pd.DataFrame, interpretation_col: str | None = None):
-    """Display dataframe with status icon and color."""
+    """Display readable wrapped table with status icon and color."""
     status_df = add_status_columns(df, interpretation_col=interpretation_col)
-    try:
-        st.dataframe(style_status_table(status_df), use_container_width=True, hide_index=True)
-    except Exception:
-        st.dataframe(status_df, use_container_width=True, hide_index=True)
+    st.markdown(render_status_html_table(status_df), unsafe_allow_html=True)
 
 
 def status_legend():
-    st.caption("สัญลักษณ์: 🟢 บวก / น่าสนใจ | 🟡 กลาง ๆ / รอดู | 🔴 ลบ / ต้องระวัง")
-
+    st.markdown(
+        "<div style='margin:0.2rem 0 0.8rem 0; font-size:0.95rem; color:#374151;'>"
+        "<strong>สัญลักษณ์:</strong> "
+        "<span style='color:#15803d; font-weight:700;'>🟢 บวก / น่าสนใจ</span> &nbsp;|&nbsp; "
+        "<span style='color:#a16207; font-weight:700;'>🟡 กลาง ๆ / รอดู</span> &nbsp;|&nbsp; "
+        "<span style='color:#dc2626; font-weight:700;'>🔴 ลบ / ต้องระวัง</span>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
 
 
 def score_level(score: float) -> str:
+
     """Beginner-friendly score label."""
     if score >= 75:
         return "แข็งแรงมาก"
@@ -898,8 +962,8 @@ def dark_pool_indicator_explanation(name: str, value):
 
     return display_name, value_display, meaning, interpretation
 
-st.set_page_config(page_title="Smart Money Whale Agent v2.6", layout="wide")
-st.title("🐋 Smart Money Whale Agent v2.6 — US Stocks")
+st.set_page_config(page_title="Smart Money Whale Agent v2.7", layout="wide")
+st.title("🐋 Smart Money Whale Agent v2.7 — US Stocks")
 st.caption("วิเคราะห์วาฬ / Smart Money จากราคา ปริมาณซื้อขาย VWAP CMF OBV ADL MFI VPT EMV options flow institutional 13F insider trading whale ownership dark-pool off-exchange 13F insider dark-pool short pressure และ relative strength")
 
 with st.sidebar:
