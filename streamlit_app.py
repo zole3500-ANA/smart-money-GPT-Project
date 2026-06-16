@@ -1042,7 +1042,7 @@ def dark_pool_indicator_explanation(name: str, value):
 
     return display_name, value_display, meaning, interpretation
 
-st.set_page_config(page_title="Smart Money Whale Agent v3.0", layout="wide")
+st.set_page_config(page_title="Smart Money Whale Agent v3.1", layout="wide")
 
 st.markdown(
     """
@@ -1168,7 +1168,7 @@ st.markdown(
 st.markdown(
     """
     <div class="main-hero">
-        <h1>🐋 Smart Money Whale Agent v3.0</h1>
+        <h1>🐋 Smart Money Whale Agent v3.1</h1>
         <p>แดชบอร์ดวิเคราะห์หุ้นอเมริกาให้ดูง่ายขึ้น เน้นอ่านง่าย ใช้งานง่าย และอธิบายแบบมือใหม่เข้าใจได้</p>
         <div class="badge-row">
             <span class="badge">Price + Volume</span>
@@ -1286,552 +1286,552 @@ if run and ticker:
         st.stop()
 
 
-st.markdown(
-    f"""
-    <div class="quick-card" style="margin-bottom:0.9rem;">
-        <h4>ผลการวิเคราะห์ล่าสุด: {ticker}</h4>
-        <p>
-            ระบบประเมินแนวโน้มระยะสั้นจากกราฟราคา ปริมาณซื้อขาย และสัญญาณ smart money
-            พร้อมตรวจสอบข้อมูลเสริมจากแหล่งฟรี/สาธารณะเท่าที่หาได้
-        </p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+    st.markdown(
+        f"""
+        <div class="quick-card" style="margin-bottom:0.9rem;">
+            <h4>ผลการวิเคราะห์ล่าสุด: {ticker}</h4>
+            <p>
+                ระบบประเมินแนวโน้มระยะสั้นจากกราฟราคา ปริมาณซื้อขาย และสัญญาณ smart money
+                พร้อมตรวจสอบข้อมูลเสริมจากแหล่งฟรี/สาธารณะเท่าที่หาได้
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-c1, c2, c3, c4 = st.columns(4)
-c1.metric("Current price", f"{report.current_price:.4f}" if report.current_price else "N/A")
-c2.metric("Composite score", f"{report.score.composite}/100", report.score.label)
-c3.metric("Probability up", f"{report.forecast.probability_up:.1%}")
-c4.metric("Next-day bias", report.forecast.next_day_bias)
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Current price", f"{report.current_price:.4f}" if report.current_price else "N/A")
+    c2.metric("Composite score", f"{report.score.composite}/100", report.score.label)
+    c3.metric("Probability up", f"{report.forecast.probability_up:.1%}")
+    c4.metric("Next-day bias", report.forecast.next_day_bias)
 
-score_df = pd.DataFrame([
-    {"component": "Smart money flow", "score": report.score.smart_money_flow},
-    {"component": "Technical trend", "score": report.score.technical_trend},
-    {"component": "Options flow", "score": report.score.options_flow},
-    {"component": "Short pressure/squeeze", "score": report.score.short_pressure},
-    {"component": "Fundamental quality", "score": report.score.fundamental_quality},
-    {"component": "Institutional/13F", "score": report.score.institutional_flow},
-    {"component": "Insider flow", "score": report.score.insider_flow},
-    {"component": "Dark pool/block", "score": report.score.dark_pool_flow},
-    {"component": "Relative strength", "score": report.score.relative_strength},
-    {"component": "Psychology/sentiment", "score": report.score.psychology},
-    {"component": "Catalyst/filing risk", "score": report.score.catalyst_risk},
-])
+    score_df = pd.DataFrame([
+        {"component": "Smart money flow", "score": report.score.smart_money_flow},
+        {"component": "Technical trend", "score": report.score.technical_trend},
+        {"component": "Options flow", "score": report.score.options_flow},
+        {"component": "Short pressure/squeeze", "score": report.score.short_pressure},
+        {"component": "Fundamental quality", "score": report.score.fundamental_quality},
+        {"component": "Institutional/13F", "score": report.score.institutional_flow},
+        {"component": "Insider flow", "score": report.score.insider_flow},
+        {"component": "Dark pool/block", "score": report.score.dark_pool_flow},
+        {"component": "Relative strength", "score": report.score.relative_strength},
+        {"component": "Psychology/sentiment", "score": report.score.psychology},
+        {"component": "Catalyst/filing risk", "score": report.score.catalyst_risk},
+    ])
 
-interpret_rows = []
-for _, row in score_df.iterrows():
-    component = row["component"]
-    score = float(row["score"])
-    interpret_rows.append({
-        "หมวด": component,
-        "คะแนน": round(score, 2),
-        "ระดับ": score_level(score),
-        "คำแปลความหมาย": component_interpretation(component, score),
-    })
-interpret_df = pd.DataFrame(interpret_rows)
-strong_points = interpret_df[interpret_df["คะแนน"] >= 60]["หมวด"].tolist()
-weak_points = interpret_df[interpret_df["คะแนน"] < 40]["หมวด"].tolist()
+    interpret_rows = []
+    for _, row in score_df.iterrows():
+        component = row["component"]
+        score = float(row["score"])
+        interpret_rows.append({
+            "หมวด": component,
+            "คะแนน": round(score, 2),
+            "ระดับ": score_level(score),
+            "คำแปลความหมาย": component_interpretation(component, score),
+        })
+    interpret_df = pd.DataFrame(interpret_rows)
+    strong_points = interpret_df[interpret_df["คะแนน"] >= 60]["หมวด"].tolist()
+    weak_points = interpret_df[interpret_df["คะแนน"] < 40]["หมวด"].tolist()
 
-fig = go.Figure()
-fig.add_trace(go.Candlestick(x=df.index, open=df["Open"], high=df["High"], low=df["Low"], close=df["Close"], name="Price"))
-for col in ["SMA20", "SMA50", "SMA200", "VWAP"]:
-    if col in df:
-        fig.add_trace(go.Scatter(x=df.index, y=df[col], name=col, mode="lines"))
-fig.update_layout(height=540, xaxis_rangeslider_visible=False, margin=dict(l=10, r=10, t=10, b=10))
+    fig = go.Figure()
+    fig.add_trace(go.Candlestick(x=df.index, open=df["Open"], high=df["High"], low=df["Low"], close=df["Close"], name="Price"))
+    for col in ["SMA20", "SMA50", "SMA200", "VWAP"]:
+        if col in df:
+            fig.add_trace(go.Scatter(x=df.index, y=df[col], name=col, mode="lines"))
+    fig.update_layout(height=540, xaxis_rangeslider_visible=False, margin=dict(l=10, r=10, t=10, b=10))
 
-tab_overview, tab_indicators, tab_smart, tab_beginner = st.tabs(
-    ["📊 Overview", "📘 Key Indicators", "🐋 Smart Money Tables", "🧠 Beginner Summary"]
-)
+    tab_overview, tab_indicators, tab_smart, tab_beginner = st.tabs(
+        ["📊 Overview", "📘 Key Indicators", "🐋 Smart Money Tables", "🧠 Beginner Summary"]
+    )
 
-with tab_overview:
-    c_chart, c_side = st.columns([1.7, 1])
-    with c_chart:
-        st.markdown('<div class="section-head">กราฟราคาและเส้นสำคัญ</div>', unsafe_allow_html=True)
-        st.markdown('<div class="subtle-text">ดู Candlestick พร้อม SMA20 / SMA50 / SMA200 / VWAP</div>', unsafe_allow_html=True)
-        st.plotly_chart(fig, use_container_width=True)
-    with c_side:
-        verdict_color = "#15803d" if report.score.composite >= 60 else ("#dc2626" if report.score.composite < 40 else "#a16207")
-        st.markdown(
-            f"""
-            <div class="quick-card">
-                <h4>Quick Verdict</h4>
-                <p><strong>Composite:</strong> <span style="color:{verdict_color}; font-weight:800;">{report.score.composite}/100 ({report.score.label})</span></p>
-                <p><strong>Next-day bias:</strong> {report.forecast.next_day_bias}</p>
-                <p><strong>Probability up:</strong> {report.forecast.probability_up:.1%}</p>
-                <p><strong>ช่วงข้อมูล:</strong> {period}</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        if strong_points:
-            st.success("จุดแข็ง: " + ", ".join(strong_points))
-        else:
-            st.info("ยังไม่มีหมวดที่เด่นมากเป็นพิเศษ")
-        if weak_points:
-            st.warning("จุดที่ต้องระวัง: " + ", ".join(weak_points))
-        else:
-            st.success("ยังไม่มีหมวดที่อ่อนมากอย่างชัดเจน")
-
-    st.markdown('<div class="section-head">Component Scores</div>', unsafe_allow_html=True)
-    st.markdown('<div class="subtle-text">คะแนนรายหมวดของโมเดล เพื่อดูว่าแรงหนุน/แรงกดดันมาจากด้านไหน</div>', unsafe_allow_html=True)
-    st.bar_chart(score_df.set_index("component"))
-
-    st.markdown('<div class="section-head">คำแปลผลคะแนนรายหมวด</div>', unsafe_allow_html=True)
-    status_legend()
-    show_status_dataframe(interpret_df, interpretation_col="คำแปลความหมาย")
-
-    st.markdown('<div class="section-head">Three-view + Smart Money Analysis</div>', unsafe_allow_html=True)
-    analysis_cols = st.columns(3)
-    items = list(report.three_view_analysis.items())
-    for idx, (k, v) in enumerate(items):
-        with analysis_cols[idx % 3]:
+    with tab_overview:
+        c_chart, c_side = st.columns([1.7, 1])
+        with c_chart:
+            st.markdown('<div class="section-head">กราฟราคาและเส้นสำคัญ</div>', unsafe_allow_html=True)
+            st.markdown('<div class="subtle-text">ดู Candlestick พร้อม SMA20 / SMA50 / SMA200 / VWAP</div>', unsafe_allow_html=True)
+            st.plotly_chart(fig, use_container_width=True)
+        with c_side:
+            verdict_color = "#15803d" if report.score.composite >= 60 else ("#dc2626" if report.score.composite < 40 else "#a16207")
             st.markdown(
                 f"""
                 <div class="quick-card">
-                    <h4>{k}</h4>
-                    <p>{v}</p>
+                    <h4>Quick Verdict</h4>
+                    <p><strong>Composite:</strong> <span style="color:{verdict_color}; font-weight:800;">{report.score.composite}/100 ({report.score.label})</span></p>
+                    <p><strong>Next-day bias:</strong> {report.forecast.next_day_bias}</p>
+                    <p><strong>Probability up:</strong> {report.forecast.probability_up:.1%}</p>
+                    <p><strong>ช่วงข้อมูล:</strong> {period}</p>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
+            if strong_points:
+                st.success("จุดแข็ง: " + ", ".join(strong_points))
+            else:
+                st.info("ยังไม่มีหมวดที่เด่นมากเป็นพิเศษ")
+            if weak_points:
+                st.warning("จุดที่ต้องระวัง: " + ", ".join(weak_points))
+            else:
+                st.success("ยังไม่มีหมวดที่อ่อนมากอย่างชัดเจน")
 
-with tab_indicators:
-    st.markdown('<div class="section-head">Key Indicators — แปลผลให้อ่านง่าย</div>', unsafe_allow_html=True)
-    st.markdown('<div class="subtle-text">แปลง indicator หลักเป็นภาษาง่าย ๆ เพื่อให้อ่านได้เร็วขึ้น</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-head">Component Scores</div>', unsafe_allow_html=True)
+        st.markdown('<div class="subtle-text">คะแนนรายหมวดของโมเดล เพื่อดูว่าแรงหนุน/แรงกดดันมาจากด้านไหน</div>', unsafe_allow_html=True)
+        st.bar_chart(score_df.set_index("component"))
 
-    key_cols = [
-        "Close", "SMA20", "SMA50", "SMA200", "RSI14", "ATRPercent", "VolumeZ", "RelativeVolume30",
-        "CMF20", "MFI14", "VWAPDeviationPct", "OBVTrend20",
-        "ADL", "ADLTrend20", "ADLPriceDivergence20",
-        "VPT", "VPTTrend20", "VPTPriceDivergence20",
-        "EaseOfMovement14", "EaseOfMovementTrend5", "CloseLocationValue", "UpDownVolumeRatio20",
-        "PocketPivotProxy", "PocketPivotCount20", "DistributionDayFlag", "DistributionDayCount25",
-        "AccumulationDayFlag", "AccumulationDayCount25", "NetAccumulationDays25",
-        "RS_SPY_Return20DSpread", "RS_QQQ_Return20DSpread",
-    ]
-    indicator_rows = []
-    for key in key_cols:
-        raw_value = report.indicators.get(key)
-        display_name, value_display, beginner_meaning, interpretation = indicator_explanation(key, raw_value)
-        indicator_rows.append({
-            "Indicator": display_name,
-            "ค่า": value_display,
-            "คืออะไร": beginner_meaning,
-            "แปลผลตอนนี้": interpretation,
-        })
-    indicator_df = pd.DataFrame(indicator_rows)
-    status_legend()
-    show_status_dataframe(indicator_df, interpretation_col="แปลผลตอนนี้")
+        st.markdown('<div class="section-head">คำแปลผลคะแนนรายหมวด</div>', unsafe_allow_html=True)
+        status_legend()
+        show_status_dataframe(interpret_df, interpretation_col="คำแปลความหมาย")
 
-    st.markdown('<div class="section-head">Accumulation / Distribution Indicators</div>', unsafe_allow_html=True)
-    st.markdown('<div class="subtle-text">กลุ่มนี้ช่วยอ่านร่องรอยการสะสม/กระจายของจากราคาและปริมาณซื้อขาย</div>', unsafe_allow_html=True)
-    ad_keys = [
-        "ADL", "MFI14", "VPT", "EaseOfMovement14", "CloseLocationValue",
-        "UpDownVolumeRatio20", "PocketPivotProxy", "DistributionDayCount25",
-    ]
-    ad_rows = []
-    for key in ad_keys:
-        raw_value = report.indicators.get(key)
-        display_name, value_display, beginner_meaning, interpretation = indicator_explanation(key, raw_value)
-        ad_rows.append({
-            "Indicator": display_name,
-            "ค่า": value_display,
-            "ความหมาย": beginner_meaning,
-            "การตีความ": interpretation,
-        })
-    status_legend()
-    show_status_dataframe(pd.DataFrame(ad_rows), interpretation_col="การตีความ")
+        st.markdown('<div class="section-head">Three-view + Smart Money Analysis</div>', unsafe_allow_html=True)
+        analysis_cols = st.columns(3)
+        items = list(report.three_view_analysis.items())
+        for idx, (k, v) in enumerate(items):
+            with analysis_cols[idx % 3]:
+                st.markdown(
+                    f"""
+                    <div class="quick-card">
+                        <h4>{k}</h4>
+                        <p>{v}</p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
 
-with tab_smart:
-    hidden_optional_tables = []
+    with tab_indicators:
+        st.markdown('<div class="section-head">Key Indicators — แปลผลให้อ่านง่าย</div>', unsafe_allow_html=True)
+        st.markdown('<div class="subtle-text">แปลง indicator หลักเป็นภาษาง่าย ๆ เพื่อให้อ่านได้เร็วขึ้น</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="section-head">Options Flow Indicators</div>', unsafe_allow_html=True)
-    st.markdown('<div class="subtle-text">ใช้จับแรงเก็งกำไรระยะสั้นผ่าน options activity</div>', unsafe_allow_html=True)
-    options_data = get_optional_feed(report, "options_flow", "options")
-    if not feed_has_data(options_data):
-        hidden_optional_tables.append("Options Flow")
-    else:
-        show_feed_confidence(report, "options_flow", "options")
-        options_keys = [
-            "unusual_options_volume",
-            "call_volume",
-            "put_volume",
-            "call_put_volume_ratio",
-            "put_call_ratio",
-            "options_volume_open_interest_ratio",
-            "sweep_order_count",
-            "options_block_trade_count",
-            "premium_paid_usd",
-            "aggressor_side",
-            "near_term_call_premium_usd",
-            "near_term_put_premium_usd",
-            "leaps_call_premium_usd",
-            "leaps_put_premium_usd",
-            "otm_call_premium_usd",
-            "otm_put_premium_usd",
-            "gamma_exposure",
+        key_cols = [
+            "Close", "SMA20", "SMA50", "SMA200", "RSI14", "ATRPercent", "VolumeZ", "RelativeVolume30",
+            "CMF20", "MFI14", "VWAPDeviationPct", "OBVTrend20",
+            "ADL", "ADLTrend20", "ADLPriceDivergence20",
+            "VPT", "VPTTrend20", "VPTPriceDivergence20",
+            "EaseOfMovement14", "EaseOfMovementTrend5", "CloseLocationValue", "UpDownVolumeRatio20",
+            "PocketPivotProxy", "PocketPivotCount20", "DistributionDayFlag", "DistributionDayCount25",
+            "AccumulationDayFlag", "AccumulationDayCount25", "NetAccumulationDays25",
+            "RS_SPY_Return20DSpread", "RS_QQQ_Return20DSpread",
         ]
-        options_rows = []
-        for key in options_keys:
-            display_name, value_display, meaning, interpretation = options_indicator_explanation(key, options_data.get(key))
-            options_rows.append({
+        indicator_rows = []
+        for key in key_cols:
+            raw_value = report.indicators.get(key)
+            display_name, value_display, beginner_meaning, interpretation = indicator_explanation(key, raw_value)
+            indicator_rows.append({
                 "Indicator": display_name,
                 "ค่า": value_display,
-                "ความหมาย": meaning,
+                "คืออะไร": beginner_meaning,
+                "แปลผลตอนนี้": interpretation,
+            })
+        indicator_df = pd.DataFrame(indicator_rows)
+        status_legend()
+        show_status_dataframe(indicator_df, interpretation_col="แปลผลตอนนี้")
+
+        st.markdown('<div class="section-head">Accumulation / Distribution Indicators</div>', unsafe_allow_html=True)
+        st.markdown('<div class="subtle-text">กลุ่มนี้ช่วยอ่านร่องรอยการสะสม/กระจายของจากราคาและปริมาณซื้อขาย</div>', unsafe_allow_html=True)
+        ad_keys = [
+            "ADL", "MFI14", "VPT", "EaseOfMovement14", "CloseLocationValue",
+            "UpDownVolumeRatio20", "PocketPivotProxy", "DistributionDayCount25",
+        ]
+        ad_rows = []
+        for key in ad_keys:
+            raw_value = report.indicators.get(key)
+            display_name, value_display, beginner_meaning, interpretation = indicator_explanation(key, raw_value)
+            ad_rows.append({
+                "Indicator": display_name,
+                "ค่า": value_display,
+                "ความหมาย": beginner_meaning,
                 "การตีความ": interpretation,
             })
         status_legend()
-        show_status_dataframe(pd.DataFrame(options_rows), interpretation_col="การตีความ")
+        show_status_dataframe(pd.DataFrame(ad_rows), interpretation_col="การตีความ")
 
-        options_summary = []
-        call_put = _to_float(options_data.get("call_put_volume_ratio"))
-        put_call = _to_float(options_data.get("put_call_ratio"))
-        vol_oi = _to_float(options_data.get("options_volume_open_interest_ratio"))
-        sweeps = _to_float(options_data.get("sweep_order_count", options_data.get("sweep_count")))
-        premium = _to_float(options_data.get("premium_paid_usd", options_data.get("premium_usd")))
-        side = str(options_data.get("aggressor_side", "")).lower().strip()
-        otm_call = _to_float(options_data.get("otm_call_premium_usd"))
-        otm_put = _to_float(options_data.get("otm_put_premium_usd"))
-        gamma = _to_float(options_data.get("gamma_exposure", options_data.get("dealer_gamma_exposure")))
+    with tab_smart:
+        hidden_optional_tables = []
 
-        if call_put is not None:
-            if call_put >= 1.5:
-                options_summary.append("Call/Put ratio สูง: sentiment ฝั่ง options เอน bullish")
-            elif call_put < 0.8:
-                options_summary.append("Call/Put ratio ต่ำ: call ไม่เด่นเมื่อเทียบ put")
-        if put_call is not None and put_call >= 1.5:
-            options_summary.append("Put/Call ratio สูง: อาจมี fear หรือ hedge จำนวนมาก")
-        if vol_oi is not None and vol_oi >= 1:
-            options_summary.append("Options volume / open interest สูง: อาจมีการเปิดสถานะใหม่")
-        if sweeps is not None and sweeps >= 5:
-            options_summary.append("Sweep orders หลายรายการ: วาฬอาจเร่งเข้า position")
-        if premium is not None and premium >= 1_000_000:
-            options_summary.append("Premium paid สูง: มีเงินก้อนใหญ่ใน options flow")
-        if side in {"ask", "buy", "buyer", "bought_at_ask"}:
-            options_summary.append("Aggressor side อยู่ฝั่ง ask/buy: bias เชิงบวก")
-        elif side in {"bid", "sell", "seller", "sold_at_bid"}:
-            options_summary.append("Aggressor side อยู่ฝั่ง bid/sell: bias เชิงลบ")
-        if otm_call is not None and otm_put is not None:
-            if otm_call > otm_put:
-                options_summary.append("OTM call premium มากกว่า OTM put: มีการเก็งขึ้นแรงมากกว่า")
-            elif otm_put > otm_call:
-                options_summary.append("OTM put premium มากกว่า OTM call: มีการเก็งลงหรือ hedge มากกว่า")
-        if gamma is not None:
-            if gamma > 0:
-                options_summary.append("Gamma exposure เป็นบวก: อาจช่วยลดแรงเหวี่ยงบางส่วน")
-            elif gamma < 0:
-                options_summary.append("Gamma exposure เป็นลบ: ราคาอาจเหวี่ยงแรงขึ้น")
-        if options_summary:
-            with st.expander("สรุป Options Flow แบบมือใหม่", expanded=False):
-                for note in options_summary:
-                    st.markdown(f"- {note}")
+        st.markdown('<div class="section-head">Options Flow Indicators</div>', unsafe_allow_html=True)
+        st.markdown('<div class="subtle-text">ใช้จับแรงเก็งกำไรระยะสั้นผ่าน options activity</div>', unsafe_allow_html=True)
+        options_data = get_optional_feed(report, "options_flow", "options")
+        if not feed_has_data(options_data):
+            hidden_optional_tables.append("Options Flow")
+        else:
+            show_feed_confidence(report, "options_flow", "options")
+            options_keys = [
+                "unusual_options_volume",
+                "call_volume",
+                "put_volume",
+                "call_put_volume_ratio",
+                "put_call_ratio",
+                "options_volume_open_interest_ratio",
+                "sweep_order_count",
+                "options_block_trade_count",
+                "premium_paid_usd",
+                "aggressor_side",
+                "near_term_call_premium_usd",
+                "near_term_put_premium_usd",
+                "leaps_call_premium_usd",
+                "leaps_put_premium_usd",
+                "otm_call_premium_usd",
+                "otm_put_premium_usd",
+                "gamma_exposure",
+            ]
+            options_rows = []
+            for key in options_keys:
+                display_name, value_display, meaning, interpretation = options_indicator_explanation(key, options_data.get(key))
+                options_rows.append({
+                    "Indicator": display_name,
+                    "ค่า": value_display,
+                    "ความหมาย": meaning,
+                    "การตีความ": interpretation,
+                })
+            status_legend()
+            show_status_dataframe(pd.DataFrame(options_rows), interpretation_col="การตีความ")
 
-    st.markdown('<div class="section-head">Institutional / Whale Ownership</div>', unsafe_allow_html=True)
-    st.markdown('<div class="subtle-text">ดูร่องรอยการถือครองและการเปลี่ยนแปลงของสถาบัน / รายใหญ่</div>', unsafe_allow_html=True)
-    inst_data = get_optional_feed(report, "institutional_flow", "institutional")
-    if not feed_has_data(inst_data):
-        hidden_optional_tables.append("Institutional / Whale Ownership")
-    else:
-        show_feed_confidence(report, "institutional_flow", "institutional")
-        inst_keys = [
-            "net_institutional_flow_pct", "new_positions_count", "increased_positions_count",
-            "decreased_positions_count", "sold_out_positions_count", "top10_holder_concentration_pct",
-            "institutional_ownership_pct", "qoq_holding_change_pct", "whale_accumulation_score",
-            "net_institutional_flow_value_usd",
-        ]
-        inst_rows = []
-        for key in inst_keys:
-            display_name, value_display, meaning, interpretation = institutional_indicator_explanation(key, inst_data.get(key))
-            inst_rows.append({
-                "Indicator": display_name,
-                "ค่า": value_display,
-                "ความหมาย": meaning,
-                "สำคัญอย่างไร / การตีความ": interpretation,
-            })
-        status_legend()
-        show_status_dataframe(pd.DataFrame(inst_rows), interpretation_col="สำคัญอย่างไร / การตีความ")
+            options_summary = []
+            call_put = _to_float(options_data.get("call_put_volume_ratio"))
+            put_call = _to_float(options_data.get("put_call_ratio"))
+            vol_oi = _to_float(options_data.get("options_volume_open_interest_ratio"))
+            sweeps = _to_float(options_data.get("sweep_order_count", options_data.get("sweep_count")))
+            premium = _to_float(options_data.get("premium_paid_usd", options_data.get("premium_usd")))
+            side = str(options_data.get("aggressor_side", "")).lower().strip()
+            otm_call = _to_float(options_data.get("otm_call_premium_usd"))
+            otm_put = _to_float(options_data.get("otm_put_premium_usd"))
+            gamma = _to_float(options_data.get("gamma_exposure", options_data.get("dealer_gamma_exposure")))
 
-        inst_summary = []
-        net_flow = _to_float(inst_data.get("net_institutional_flow_pct"))
-        qoq = _to_float(inst_data.get("qoq_holding_change_pct"))
-        new_pos = _to_float(inst_data.get("new_positions_count"))
-        inc_pos = _to_float(inst_data.get("increased_positions_count"))
-        dec_pos = _to_float(inst_data.get("decreased_positions_count"))
-        sold_out = _to_float(inst_data.get("sold_out_positions_count"))
-        own_pct = _to_float(inst_data.get("institutional_ownership_pct"))
-        whale_score = _to_float(inst_data.get("whale_accumulation_score"))
+            if call_put is not None:
+                if call_put >= 1.5:
+                    options_summary.append("Call/Put ratio สูง: sentiment ฝั่ง options เอน bullish")
+                elif call_put < 0.8:
+                    options_summary.append("Call/Put ratio ต่ำ: call ไม่เด่นเมื่อเทียบ put")
+            if put_call is not None and put_call >= 1.5:
+                options_summary.append("Put/Call ratio สูง: อาจมี fear หรือ hedge จำนวนมาก")
+            if vol_oi is not None and vol_oi >= 1:
+                options_summary.append("Options volume / open interest สูง: อาจมีการเปิดสถานะใหม่")
+            if sweeps is not None and sweeps >= 5:
+                options_summary.append("Sweep orders หลายรายการ: วาฬอาจเร่งเข้า position")
+            if premium is not None and premium >= 1_000_000:
+                options_summary.append("Premium paid สูง: มีเงินก้อนใหญ่ใน options flow")
+            if side in {"ask", "buy", "buyer", "bought_at_ask"}:
+                options_summary.append("Aggressor side อยู่ฝั่ง ask/buy: bias เชิงบวก")
+            elif side in {"bid", "sell", "seller", "sold_at_bid"}:
+                options_summary.append("Aggressor side อยู่ฝั่ง bid/sell: bias เชิงลบ")
+            if otm_call is not None and otm_put is not None:
+                if otm_call > otm_put:
+                    options_summary.append("OTM call premium มากกว่า OTM put: มีการเก็งขึ้นแรงมากกว่า")
+                elif otm_put > otm_call:
+                    options_summary.append("OTM put premium มากกว่า OTM call: มีการเก็งลงหรือ hedge มากกว่า")
+            if gamma is not None:
+                if gamma > 0:
+                    options_summary.append("Gamma exposure เป็นบวก: อาจช่วยลดแรงเหวี่ยงบางส่วน")
+                elif gamma < 0:
+                    options_summary.append("Gamma exposure เป็นลบ: ราคาอาจเหวี่ยงแรงขึ้น")
+            if options_summary:
+                with st.expander("สรุป Options Flow แบบมือใหม่", expanded=False):
+                    for note in options_summary:
+                        st.markdown(f"- {note}")
 
-        if net_flow is not None:
-            if abs(net_flow) <= 1 and net_flow != 0:
-                net_flow *= 100
-            inst_summary.append("13F net flow เป็นบวก: สถาบันเพิ่มการถือครองสุทธิ" if net_flow > 0 else ("13F net flow เป็นลบ: สถาบันลดการถือครองสุทธิ" if net_flow < 0 else "13F net flow ใกล้ศูนย์: ยังไม่เห็นการเปลี่ยนแปลงชัด"))
-        if inc_pos is not None and dec_pos is not None:
-            if inc_pos > dec_pos:
-                inst_summary.append("กองทุนซื้อเพิ่มมากกว่าลดพอร์ต: ภาพสะสมเป็นบวก")
-            elif dec_pos > inc_pos:
-                inst_summary.append("กองทุนลดพอร์ตมากกว่าซื้อเพิ่ม: ต้องระวังแรงขายจากสถาบัน")
-        if new_pos is not None and new_pos >= 3:
-            inst_summary.append("มี new institutional positions: เริ่มมี sponsor รายใหม่สนใจ")
-        if sold_out is not None and sold_out >= 3:
-            inst_summary.append("มี sold out positions หลายราย: เป็นสัญญาณลบที่ต้องติดตาม")
-        if qoq is not None:
-            if abs(qoq) <= 1 and qoq != 0:
-                qoq *= 100
-            inst_summary.append("QoQ holding change เพิ่มขึ้น: trend การสะสมดีขึ้น" if qoq > 0 else ("QoQ holding change ลดลง: trend การถือครองอ่อนลง" if qoq < 0 else "QoQ holding change ใกล้ศูนย์"))
-        if own_pct is not None:
-            if abs(own_pct) <= 1 and own_pct != 0:
-                own_pct *= 100
-            if own_pct >= 30:
-                inst_summary.append("Institutional ownership สูง: หุ้นมีฐานผู้ถือหุ้นสถาบันชัด")
-            elif own_pct > 0 and own_pct < 10:
-                inst_summary.append("Institutional ownership ต่ำ: หุ้นอาจยังพึ่งพารายย่อยมากกว่า")
-        if whale_score is not None and whale_score >= 60:
-            inst_summary.append("Whale Accumulation Score ดี: โมเดลมองว่ารายใหญ่เริ่มสะสม")
-        if inst_summary:
-            with st.expander("สรุป Institutional / Whale Ownership แบบมือใหม่", expanded=False):
-                for note in inst_summary:
-                    st.markdown(f"- {note}")
+        st.markdown('<div class="section-head">Institutional / Whale Ownership</div>', unsafe_allow_html=True)
+        st.markdown('<div class="subtle-text">ดูร่องรอยการถือครองและการเปลี่ยนแปลงของสถาบัน / รายใหญ่</div>', unsafe_allow_html=True)
+        inst_data = get_optional_feed(report, "institutional_flow", "institutional")
+        if not feed_has_data(inst_data):
+            hidden_optional_tables.append("Institutional / Whale Ownership")
+        else:
+            show_feed_confidence(report, "institutional_flow", "institutional")
+            inst_keys = [
+                "net_institutional_flow_pct", "new_positions_count", "increased_positions_count",
+                "decreased_positions_count", "sold_out_positions_count", "top10_holder_concentration_pct",
+                "institutional_ownership_pct", "qoq_holding_change_pct", "whale_accumulation_score",
+                "net_institutional_flow_value_usd",
+            ]
+            inst_rows = []
+            for key in inst_keys:
+                display_name, value_display, meaning, interpretation = institutional_indicator_explanation(key, inst_data.get(key))
+                inst_rows.append({
+                    "Indicator": display_name,
+                    "ค่า": value_display,
+                    "ความหมาย": meaning,
+                    "สำคัญอย่างไร / การตีความ": interpretation,
+                })
+            status_legend()
+            show_status_dataframe(pd.DataFrame(inst_rows), interpretation_col="สำคัญอย่างไร / การตีความ")
 
-    st.markdown('<div class="section-head">Insider Trading</div>', unsafe_allow_html=True)
-    st.markdown('<div class="subtle-text">อ่านสัญญาณจากการซื้อขายของผู้บริหารบริษัทผ่าน Form 4 หรือแหล่งสาธารณะ</div>', unsafe_allow_html=True)
-    insider_data = get_optional_feed(report, "insider_flow", "insider")
-    if not feed_has_data(insider_data):
-        hidden_optional_tables.append("Insider Trading")
-    else:
-        show_feed_confidence(report, "insider_flow", "insider")
-        insider_keys = [
-            "insider_net_buy_value_usd",
-            "insider_buy_count",
-            "insider_sell_count",
-            "ceo_cfo_transaction_count",
-            "ceo_cfo_net_buy_value_usd",
-            "cluster_buying_count",
-            "buy_size_vs_salary_ratio",
-            "option_exercise_then_sell_count",
-            "direct_open_market_buy_count",
-            "direct_open_market_buy_value_usd",
-        ]
-        insider_rows = []
-        for key in insider_keys:
-            display_name, value_display, meaning, interpretation = insider_indicator_explanation(key, insider_data.get(key))
-            insider_rows.append({
-                "Indicator": display_name,
-                "ค่า": value_display,
-                "ความหมาย": meaning,
-                "การตีความ": interpretation,
-            })
-        status_legend()
-        show_status_dataframe(pd.DataFrame(insider_rows), interpretation_col="การตีความ")
+            inst_summary = []
+            net_flow = _to_float(inst_data.get("net_institutional_flow_pct"))
+            qoq = _to_float(inst_data.get("qoq_holding_change_pct"))
+            new_pos = _to_float(inst_data.get("new_positions_count"))
+            inc_pos = _to_float(inst_data.get("increased_positions_count"))
+            dec_pos = _to_float(inst_data.get("decreased_positions_count"))
+            sold_out = _to_float(inst_data.get("sold_out_positions_count"))
+            own_pct = _to_float(inst_data.get("institutional_ownership_pct"))
+            whale_score = _to_float(inst_data.get("whale_accumulation_score"))
 
-        insider_summary = []
-        net_buy = _to_float(insider_data.get("insider_net_buy_value_usd", insider_data.get("net_buy_value_usd")))
-        buy_count = _to_float(insider_data.get("insider_buy_count", insider_data.get("buy_count")))
-        sell_count = _to_float(insider_data.get("insider_sell_count", insider_data.get("sell_count")))
-        ceo_cfo_net = _to_float(insider_data.get("ceo_cfo_net_buy_value_usd"))
-        cluster_count = _to_float(insider_data.get("cluster_buying_count"))
-        direct_buy_count = _to_float(insider_data.get("direct_open_market_buy_count"))
-        exercise_sell = _to_float(insider_data.get("option_exercise_then_sell_count"))
+            if net_flow is not None:
+                if abs(net_flow) <= 1 and net_flow != 0:
+                    net_flow *= 100
+                inst_summary.append("13F net flow เป็นบวก: สถาบันเพิ่มการถือครองสุทธิ" if net_flow > 0 else ("13F net flow เป็นลบ: สถาบันลดการถือครองสุทธิ" if net_flow < 0 else "13F net flow ใกล้ศูนย์: ยังไม่เห็นการเปลี่ยนแปลงชัด"))
+            if inc_pos is not None and dec_pos is not None:
+                if inc_pos > dec_pos:
+                    inst_summary.append("กองทุนซื้อเพิ่มมากกว่าลดพอร์ต: ภาพสะสมเป็นบวก")
+                elif dec_pos > inc_pos:
+                    inst_summary.append("กองทุนลดพอร์ตมากกว่าซื้อเพิ่ม: ต้องระวังแรงขายจากสถาบัน")
+            if new_pos is not None and new_pos >= 3:
+                inst_summary.append("มี new institutional positions: เริ่มมี sponsor รายใหม่สนใจ")
+            if sold_out is not None and sold_out >= 3:
+                inst_summary.append("มี sold out positions หลายราย: เป็นสัญญาณลบที่ต้องติดตาม")
+            if qoq is not None:
+                if abs(qoq) <= 1 and qoq != 0:
+                    qoq *= 100
+                inst_summary.append("QoQ holding change เพิ่มขึ้น: trend การสะสมดีขึ้น" if qoq > 0 else ("QoQ holding change ลดลง: trend การถือครองอ่อนลง" if qoq < 0 else "QoQ holding change ใกล้ศูนย์"))
+            if own_pct is not None:
+                if abs(own_pct) <= 1 and own_pct != 0:
+                    own_pct *= 100
+                if own_pct >= 30:
+                    inst_summary.append("Institutional ownership สูง: หุ้นมีฐานผู้ถือหุ้นสถาบันชัด")
+                elif own_pct > 0 and own_pct < 10:
+                    inst_summary.append("Institutional ownership ต่ำ: หุ้นอาจยังพึ่งพารายย่อยมากกว่า")
+            if whale_score is not None and whale_score >= 60:
+                inst_summary.append("Whale Accumulation Score ดี: โมเดลมองว่ารายใหญ่เริ่มสะสม")
+            if inst_summary:
+                with st.expander("สรุป Institutional / Whale Ownership แบบมือใหม่", expanded=False):
+                    for note in inst_summary:
+                        st.markdown(f"- {note}")
 
-        if net_buy is not None:
-            if net_buy > 0:
-                insider_summary.append("Insider net buy เป็นบวก: ผู้บริหารซื้อสุทธิมากกว่าขาย")
-            elif net_buy < 0:
-                insider_summary.append("Insider net buy เป็นลบ: ผู้บริหารขายสุทธิ ต้องดูเหตุผลประกอบ")
+        st.markdown('<div class="section-head">Insider Trading</div>', unsafe_allow_html=True)
+        st.markdown('<div class="subtle-text">อ่านสัญญาณจากการซื้อขายของผู้บริหารบริษัทผ่าน Form 4 หรือแหล่งสาธารณะ</div>', unsafe_allow_html=True)
+        insider_data = get_optional_feed(report, "insider_flow", "insider")
+        if not feed_has_data(insider_data):
+            hidden_optional_tables.append("Insider Trading")
+        else:
+            show_feed_confidence(report, "insider_flow", "insider")
+            insider_keys = [
+                "insider_net_buy_value_usd",
+                "insider_buy_count",
+                "insider_sell_count",
+                "ceo_cfo_transaction_count",
+                "ceo_cfo_net_buy_value_usd",
+                "cluster_buying_count",
+                "buy_size_vs_salary_ratio",
+                "option_exercise_then_sell_count",
+                "direct_open_market_buy_count",
+                "direct_open_market_buy_value_usd",
+            ]
+            insider_rows = []
+            for key in insider_keys:
+                display_name, value_display, meaning, interpretation = insider_indicator_explanation(key, insider_data.get(key))
+                insider_rows.append({
+                    "Indicator": display_name,
+                    "ค่า": value_display,
+                    "ความหมาย": meaning,
+                    "การตีความ": interpretation,
+                })
+            status_legend()
+            show_status_dataframe(pd.DataFrame(insider_rows), interpretation_col="การตีความ")
+
+            insider_summary = []
+            net_buy = _to_float(insider_data.get("insider_net_buy_value_usd", insider_data.get("net_buy_value_usd")))
+            buy_count = _to_float(insider_data.get("insider_buy_count", insider_data.get("buy_count")))
+            sell_count = _to_float(insider_data.get("insider_sell_count", insider_data.get("sell_count")))
+            ceo_cfo_net = _to_float(insider_data.get("ceo_cfo_net_buy_value_usd"))
+            cluster_count = _to_float(insider_data.get("cluster_buying_count"))
+            direct_buy_count = _to_float(insider_data.get("direct_open_market_buy_count"))
+            exercise_sell = _to_float(insider_data.get("option_exercise_then_sell_count"))
+
+            if net_buy is not None:
+                if net_buy > 0:
+                    insider_summary.append("Insider net buy เป็นบวก: ผู้บริหารซื้อสุทธิมากกว่าขาย")
+                elif net_buy < 0:
+                    insider_summary.append("Insider net buy เป็นลบ: ผู้บริหารขายสุทธิ ต้องดูเหตุผลประกอบ")
+                else:
+                    insider_summary.append("Insider net buy ใกล้ศูนย์: ยังไม่เห็นภาพชัด")
+            if buy_count is not None and sell_count is not None:
+                if buy_count > sell_count:
+                    insider_summary.append("จำนวนรายการซื้อมากกว่าขาย: sentiment ภายในบริษัทดูดีขึ้น")
+                elif sell_count > buy_count:
+                    insider_summary.append("จำนวนรายการขายมากกว่าซื้อ: อาจกดดัน sentiment")
+            if ceo_cfo_net is not None:
+                if ceo_cfo_net > 0:
+                    insider_summary.append("CEO/CFO ซื้อสุทธิ: เป็นสัญญาณบวกคุณภาพสูง")
+                elif ceo_cfo_net < 0:
+                    insider_summary.append("CEO/CFO ขายสุทธิ: ต้องติดตามเหตุผลและขนาดรายการ")
+            if cluster_count is not None and cluster_count >= 2:
+                insider_summary.append("Cluster buying: ผู้บริหารหลายคนซื้อพร้อมกัน เป็นสัญญาณบวกแรง")
+            if direct_buy_count is not None and direct_buy_count >= 1:
+                insider_summary.append("Direct open market buy: มีการซื้อจริงในตลาด เป็นสัญญาณบวกมากกว่า exercise/options")
+            if exercise_sell is not None and exercise_sell >= 1:
+                insider_summary.append("มี option exercise then sell: ไม่ควรตีความเป็นลบทันที ต้องดูว่าเป็นแผนภาษี/ค่าตอบแทนหรือไม่")
+            if insider_summary:
+                with st.expander("สรุป Insider Trading แบบมือใหม่", expanded=False):
+                    for note in insider_summary:
+                        st.markdown(f"- {note}")
+
+        st.markdown('<div class="section-head">Dark Pool / Off-exchange</div>', unsafe_allow_html=True)
+        st.markdown('<div class="subtle-text">ติดตามการซื้อขายนอกกระดานและสัญญาณเงินใหญ่ที่ซ่อนอยู่ (แบบ proxy เมื่อใช้แหล่งฟรี)</div>', unsafe_allow_html=True)
+        dark_data = get_optional_feed(report, "dark_pool")
+        if not feed_has_data(dark_data):
+            hidden_optional_tables.append("Dark Pool / Off-exchange")
+        else:
+            show_feed_confidence(report, "dark_pool")
+            dark_keys = [
+                "dark_pool_volume", "dark_pool_volume_ratio", "large_block_trade_count",
+                "block_price_vs_vwap_pct", "repeated_print_count", "off_exchange_trend_5d",
+                "off_exchange_trend_20d", "dark_pool_net_bias",
+                "large_block_value_usd", "largest_block_value_usd",
+                "dark_pool_buy_volume", "dark_pool_sell_volume",
+            ]
+            dark_rows = []
+            for key in dark_keys:
+                display_name, value_display, meaning, interpretation = dark_pool_indicator_explanation(key, dark_data.get(key))
+                dark_rows.append({
+                    "Indicator": display_name,
+                    "ค่า": value_display,
+                    "ความหมาย": meaning,
+                    "ใช้วิเคราะห์ / การตีความ": interpretation,
+                })
+            status_legend()
+            show_status_dataframe(pd.DataFrame(dark_rows), interpretation_col="ใช้วิเคราะห์ / การตีความ")
+
+            dark_summary = []
+            dark_ratio = _to_float(dark_data.get("dark_pool_volume_ratio"))
+            if dark_ratio is None:
+                dark_pct = _to_float(dark_data.get("dark_pool_pct_total_volume"))
+                dark_ratio = dark_pct / 100 if dark_pct is not None else None
+            if dark_ratio is not None and dark_ratio > 1.5:
+                dark_ratio = dark_ratio / 100
+            block_vs_vwap = _to_float(dark_data.get("block_price_vs_vwap_pct"))
+            net_bias = _to_float(dark_data.get("dark_pool_net_bias"))
+            repeated_count = _to_float(dark_data.get("repeated_print_count"))
+            offtrend_5d = _to_float(dark_data.get("off_exchange_trend_5d"))
+
+            if dark_ratio is not None:
+                if dark_ratio >= 0.45:
+                    dark_summary.append("Dark pool ratio สูง: มีการซื้อขายนอกกระดานมาก ควรจับตาเงินใหญ่")
+                else:
+                    dark_summary.append("Dark pool ratio ยังไม่สูงมาก")
+            if block_vs_vwap is not None:
+                if block_vs_vwap > 0:
+                    dark_summary.append("Block trade อยู่เหนือ VWAP: bias เอียงไปทางฝั่งซื้อ")
+                elif block_vs_vwap < 0:
+                    dark_summary.append("Block trade ต่ำกว่า VWAP: bias เอียงไปทางฝั่งขาย")
+            if net_bias is not None:
+                if net_bias > 0.05:
+                    dark_summary.append("Dark pool net bias เป็นบวก: ฝั่งซื้อเด่นกว่า")
+                elif net_bias < -0.05:
+                    dark_summary.append("Dark pool net bias เป็นลบ: ฝั่งขายเด่นกว่า")
+                else:
+                    dark_summary.append("Dark pool net bias ใกล้กลาง: ยังแยกฝั่งซื้อขายไม่ชัด")
+            if repeated_count is not None and repeated_count >= 3:
+                dark_summary.append("มี repeated prints หลายครั้ง: อาจเป็นการทยอยสะสมหรือทยอยกระจายของ")
+            if offtrend_5d is not None and offtrend_5d > 0:
+                dark_summary.append("Off-exchange trend 5 วันเพิ่มขึ้น: มีการเคลื่อนไหวเงียบมากขึ้นในระยะสั้น")
+            if dark_summary:
+                with st.expander("สรุป Dark Pool แบบมือใหม่", expanded=False):
+                    for note in dark_summary:
+                        st.markdown(f"- {note}")
+
+        show_hidden_tables_note(hidden_optional_tables)
+
+    with tab_beginner:
+        st.markdown('<div class="section-head">สรุป Key Indicators แบบภาษาคนเริ่มต้น</div>', unsafe_allow_html=True)
+        st.markdown('<div class="subtle-text">โหมดนี้สรุปเฉพาะสิ่งสำคัญที่ควรรู้แบบสั้น กระชับ และอ่านง่าย</div>', unsafe_allow_html=True)
+
+        simple_notes = []
+        rsi = _to_float(report.indicators.get("RSI14"))
+        cmf = _to_float(report.indicators.get("CMF20"))
+        rv = _to_float(report.indicators.get("RelativeVolume30"))
+        vwap_dev = _to_float(report.indicators.get("VWAPDeviationPct"))
+        atrp = _to_float(report.indicators.get("ATRPercent"))
+        dist_days = _to_float(report.indicators.get("DistributionDayCount25"))
+        acc_days = _to_float(report.indicators.get("AccumulationDayCount25"))
+        updown = _to_float(report.indicators.get("UpDownVolumeRatio20"))
+        clv = _to_float(report.indicators.get("CloseLocationValue"))
+        pocket_count = _to_float(report.indicators.get("PocketPivotCount20"))
+        adl_div = _to_float(report.indicators.get("ADLPriceDivergence20"))
+        vpt_div = _to_float(report.indicators.get("VPTPriceDivergence20"))
+        rs_spy = _to_float(report.indicators.get("RS_SPY_Return20DSpread"))
+
+        if rsi is not None:
+            if rsi >= 70:
+                simple_notes.append("RSI สูง: หุ้นกำลังร้อนแรง ควรระวังการไล่ซื้อ")
+            elif rsi <= 30:
+                simple_notes.append("RSI ต่ำ: หุ้นถูกขายมาก อาจมีเด้งได้ แต่ยังต้องรอสัญญาณกลับตัว")
             else:
-                insider_summary.append("Insider net buy ใกล้ศูนย์: ยังไม่เห็นภาพชัด")
-        if buy_count is not None and sell_count is not None:
-            if buy_count > sell_count:
-                insider_summary.append("จำนวนรายการซื้อมากกว่าขาย: sentiment ภายในบริษัทดูดีขึ้น")
-            elif sell_count > buy_count:
-                insider_summary.append("จำนวนรายการขายมากกว่าซื้อ: อาจกดดัน sentiment")
-        if ceo_cfo_net is not None:
-            if ceo_cfo_net > 0:
-                insider_summary.append("CEO/CFO ซื้อสุทธิ: เป็นสัญญาณบวกคุณภาพสูง")
-            elif ceo_cfo_net < 0:
-                insider_summary.append("CEO/CFO ขายสุทธิ: ต้องติดตามเหตุผลและขนาดรายการ")
-        if cluster_count is not None and cluster_count >= 2:
-            insider_summary.append("Cluster buying: ผู้บริหารหลายคนซื้อพร้อมกัน เป็นสัญญาณบวกแรง")
-        if direct_buy_count is not None and direct_buy_count >= 1:
-            insider_summary.append("Direct open market buy: มีการซื้อจริงในตลาด เป็นสัญญาณบวกมากกว่า exercise/options")
-        if exercise_sell is not None and exercise_sell >= 1:
-            insider_summary.append("มี option exercise then sell: ไม่ควรตีความเป็นลบทันที ต้องดูว่าเป็นแผนภาษี/ค่าตอบแทนหรือไม่")
-        if insider_summary:
-            with st.expander("สรุป Insider Trading แบบมือใหม่", expanded=False):
-                for note in insider_summary:
-                    st.markdown(f"- {note}")
-
-    st.markdown('<div class="section-head">Dark Pool / Off-exchange</div>', unsafe_allow_html=True)
-    st.markdown('<div class="subtle-text">ติดตามการซื้อขายนอกกระดานและสัญญาณเงินใหญ่ที่ซ่อนอยู่ (แบบ proxy เมื่อใช้แหล่งฟรี)</div>', unsafe_allow_html=True)
-    dark_data = get_optional_feed(report, "dark_pool")
-    if not feed_has_data(dark_data):
-        hidden_optional_tables.append("Dark Pool / Off-exchange")
-    else:
-        show_feed_confidence(report, "dark_pool")
-        dark_keys = [
-            "dark_pool_volume", "dark_pool_volume_ratio", "large_block_trade_count",
-            "block_price_vs_vwap_pct", "repeated_print_count", "off_exchange_trend_5d",
-            "off_exchange_trend_20d", "dark_pool_net_bias",
-            "large_block_value_usd", "largest_block_value_usd",
-            "dark_pool_buy_volume", "dark_pool_sell_volume",
-        ]
-        dark_rows = []
-        for key in dark_keys:
-            display_name, value_display, meaning, interpretation = dark_pool_indicator_explanation(key, dark_data.get(key))
-            dark_rows.append({
-                "Indicator": display_name,
-                "ค่า": value_display,
-                "ความหมาย": meaning,
-                "ใช้วิเคราะห์ / การตีความ": interpretation,
-            })
-        status_legend()
-        show_status_dataframe(pd.DataFrame(dark_rows), interpretation_col="ใช้วิเคราะห์ / การตีความ")
-
-        dark_summary = []
-        dark_ratio = _to_float(dark_data.get("dark_pool_volume_ratio"))
-        if dark_ratio is None:
-            dark_pct = _to_float(dark_data.get("dark_pool_pct_total_volume"))
-            dark_ratio = dark_pct / 100 if dark_pct is not None else None
-        if dark_ratio is not None and dark_ratio > 1.5:
-            dark_ratio = dark_ratio / 100
-        block_vs_vwap = _to_float(dark_data.get("block_price_vs_vwap_pct"))
-        net_bias = _to_float(dark_data.get("dark_pool_net_bias"))
-        repeated_count = _to_float(dark_data.get("repeated_print_count"))
-        offtrend_5d = _to_float(dark_data.get("off_exchange_trend_5d"))
-
-        if dark_ratio is not None:
-            if dark_ratio >= 0.45:
-                dark_summary.append("Dark pool ratio สูง: มีการซื้อขายนอกกระดานมาก ควรจับตาเงินใหญ่")
+                simple_notes.append("RSI ยังไม่สุดโต่ง: แรงซื้อขายยังไม่เกินไปทางใดทางหนึ่งมาก")
+        if cmf is not None:
+            if cmf > 0.05:
+                simple_notes.append("CMF เป็นบวก: มีภาพเงินไหลเข้า")
+            elif cmf < -0.05:
+                simple_notes.append("CMF เป็นลบ: มีภาพเงินไหลออก")
             else:
-                dark_summary.append("Dark pool ratio ยังไม่สูงมาก")
-        if block_vs_vwap is not None:
-            if block_vs_vwap > 0:
-                dark_summary.append("Block trade อยู่เหนือ VWAP: bias เอียงไปทางฝั่งซื้อ")
-            elif block_vs_vwap < 0:
-                dark_summary.append("Block trade ต่ำกว่า VWAP: bias เอียงไปทางฝั่งขาย")
-        if net_bias is not None:
-            if net_bias > 0.05:
-                dark_summary.append("Dark pool net bias เป็นบวก: ฝั่งซื้อเด่นกว่า")
-            elif net_bias < -0.05:
-                dark_summary.append("Dark pool net bias เป็นลบ: ฝั่งขายเด่นกว่า")
+                simple_notes.append("CMF ใกล้ศูนย์: เงินไหลเข้าออกยังไม่ชัด")
+        if rv is not None:
+            if rv >= 1.5:
+                simple_notes.append("Volume สูงกว่าปกติ: ตลาดกำลังให้ความสนใจหุ้นตัวนี้")
+            elif rv < 0.8:
+                simple_notes.append("Volume เบา: สัญญาณจากราคายังไม่น่าเชื่อถือมาก")
             else:
-                dark_summary.append("Dark pool net bias ใกล้กลาง: ยังแยกฝั่งซื้อขายไม่ชัด")
-        if repeated_count is not None and repeated_count >= 3:
-            dark_summary.append("มี repeated prints หลายครั้ง: อาจเป็นการทยอยสะสมหรือทยอยกระจายของ")
-        if offtrend_5d is not None and offtrend_5d > 0:
-            dark_summary.append("Off-exchange trend 5 วันเพิ่มขึ้น: มีการเคลื่อนไหวเงียบมากขึ้นในระยะสั้น")
-        if dark_summary:
-            with st.expander("สรุป Dark Pool แบบมือใหม่", expanded=False):
-                for note in dark_summary:
-                    st.markdown(f"- {note}")
+                simple_notes.append("Volume ปกติ: ยังไม่มีความผิดปกติด้านปริมาณซื้อขาย")
+        if vwap_dev is not None:
+            if vwap_dev > 1:
+                simple_notes.append("ราคาอยู่เหนือ VWAP: ฝั่งซื้อได้เปรียบระหว่างวัน/ช่วงล่าสุด")
+            elif vwap_dev < -1:
+                simple_notes.append("ราคาอยู่ต่ำกว่า VWAP: ฝั่งขายยังได้เปรียบ")
+            else:
+                simple_notes.append("ราคาใกล้ VWAP: ตลาดยังสมดุล")
+        if atrp is not None:
+            if atrp >= 5:
+                simple_notes.append("ATR% สูง: หุ้นแกว่งแรง ต้องวางแผนความเสี่ยงให้ดี")
+            else:
+                simple_notes.append("ATR% ไม่สูงมาก: ความผันผวนยังอยู่ในระดับที่พอควบคุมได้")
+        if acc_days is not None and dist_days is not None:
+            if acc_days > dist_days:
+                simple_notes.append("วันสะสมมากกว่าวันขาย: เริ่มมีภาพการเก็บของมากกว่ากระจายของ")
+            elif dist_days > acc_days:
+                simple_notes.append("วันขายมากกว่าวันสะสม: ต้องระวังแรงขายจากรายใหญ่")
+            else:
+                simple_notes.append("วันสะสมและวันขายใกล้กัน: ภาพเงินใหญ่ยังไม่ชัดเจน")
+        if updown is not None:
+            if updown >= 1.2:
+                simple_notes.append("Up/Down Volume Ratio ดี: Volume วันขึ้นมากกว่าวันลง สะท้อนเงินเข้า")
+            elif updown < 0.8:
+                simple_notes.append("Up/Down Volume Ratio อ่อน: Volume วันลงมากกว่า ต้องระวังเงินออก")
+        if clv is not None:
+            if clv >= 0.3:
+                simple_notes.append("Close Location Value ดี: ราคาปิดใกล้ High แปลว่าผู้ซื้อคุมเกม")
+            elif clv <= -0.3:
+                simple_notes.append("Close Location Value อ่อน: ราคาปิดใกล้ Low แปลว่าผู้ขายคุมเกม")
+        if pocket_count is not None and pocket_count >= 1:
+            simple_notes.append(f"มี Pocket Pivot {int(pocket_count)} ครั้งใน 20 วัน: เป็นร่องรอยแรงซื้อคุณภาพ")
+        if adl_div is not None and adl_div > 0:
+            simple_notes.append("ADL bullish divergence: ราคาอ่อนแต่เส้นสะสมยังดี อาจมีการเก็บของเงียบ")
+        elif adl_div is not None and adl_div < 0:
+            simple_notes.append("ADL bearish divergence: ราคาไปต่อแต่เงินสะสมไม่ตาม ระวังขึ้นหลอก")
+        if vpt_div is not None and vpt_div > 0:
+            simple_notes.append("VPT bullish divergence: Volume ยังสนับสนุนแม้ราคายังอ่อน")
+        elif vpt_div is not None and vpt_div < 0:
+            simple_notes.append("VPT bearish divergence: ราคาแข็งแต่ volume ไม่หนุน ต้องระวัง")
+        if rs_spy is not None:
+            if rs_spy > 3:
+                simple_notes.append("หุ้นแข็งกว่า SPY: ถือว่า outperform ตลาดในช่วงสั้น")
+            elif rs_spy < -3:
+                simple_notes.append("หุ้นอ่อนกว่า SPY: ยังแพ้ตลาดโดยรวม")
+            else:
+                simple_notes.append("หุ้นเคลื่อนไหวใกล้เคียงตลาด")
 
-    show_hidden_tables_note(hidden_optional_tables)
-
-with tab_beginner:
-    st.markdown('<div class="section-head">สรุป Key Indicators แบบภาษาคนเริ่มต้น</div>', unsafe_allow_html=True)
-    st.markdown('<div class="subtle-text">โหมดนี้สรุปเฉพาะสิ่งสำคัญที่ควรรู้แบบสั้น กระชับ และอ่านง่าย</div>', unsafe_allow_html=True)
-
-    simple_notes = []
-    rsi = _to_float(report.indicators.get("RSI14"))
-    cmf = _to_float(report.indicators.get("CMF20"))
-    rv = _to_float(report.indicators.get("RelativeVolume30"))
-    vwap_dev = _to_float(report.indicators.get("VWAPDeviationPct"))
-    atrp = _to_float(report.indicators.get("ATRPercent"))
-    dist_days = _to_float(report.indicators.get("DistributionDayCount25"))
-    acc_days = _to_float(report.indicators.get("AccumulationDayCount25"))
-    updown = _to_float(report.indicators.get("UpDownVolumeRatio20"))
-    clv = _to_float(report.indicators.get("CloseLocationValue"))
-    pocket_count = _to_float(report.indicators.get("PocketPivotCount20"))
-    adl_div = _to_float(report.indicators.get("ADLPriceDivergence20"))
-    vpt_div = _to_float(report.indicators.get("VPTPriceDivergence20"))
-    rs_spy = _to_float(report.indicators.get("RS_SPY_Return20DSpread"))
-
-    if rsi is not None:
-        if rsi >= 70:
-            simple_notes.append("RSI สูง: หุ้นกำลังร้อนแรง ควรระวังการไล่ซื้อ")
-        elif rsi <= 30:
-            simple_notes.append("RSI ต่ำ: หุ้นถูกขายมาก อาจมีเด้งได้ แต่ยังต้องรอสัญญาณกลับตัว")
+        if simple_notes:
+            for i in range(0, len(simple_notes), 2):
+                cols = st.columns(2)
+                for j in range(2):
+                    idx = i + j
+                    if idx < len(simple_notes):
+                        with cols[j]:
+                            st.markdown(
+                                f"""
+                                <div class="quick-card">
+                                    <h4>Insight {idx + 1}</h4>
+                                    <p>{simple_notes[idx]}</p>
+                                </div>
+                                """,
+                                unsafe_allow_html=True,
+                            )
         else:
-            simple_notes.append("RSI ยังไม่สุดโต่ง: แรงซื้อขายยังไม่เกินไปทางใดทางหนึ่งมาก")
-    if cmf is not None:
-        if cmf > 0.05:
-            simple_notes.append("CMF เป็นบวก: มีภาพเงินไหลเข้า")
-        elif cmf < -0.05:
-            simple_notes.append("CMF เป็นลบ: มีภาพเงินไหลออก")
-        else:
-            simple_notes.append("CMF ใกล้ศูนย์: เงินไหลเข้าออกยังไม่ชัด")
-    if rv is not None:
-        if rv >= 1.5:
-            simple_notes.append("Volume สูงกว่าปกติ: ตลาดกำลังให้ความสนใจหุ้นตัวนี้")
-        elif rv < 0.8:
-            simple_notes.append("Volume เบา: สัญญาณจากราคายังไม่น่าเชื่อถือมาก")
-        else:
-            simple_notes.append("Volume ปกติ: ยังไม่มีความผิดปกติด้านปริมาณซื้อขาย")
-    if vwap_dev is not None:
-        if vwap_dev > 1:
-            simple_notes.append("ราคาอยู่เหนือ VWAP: ฝั่งซื้อได้เปรียบระหว่างวัน/ช่วงล่าสุด")
-        elif vwap_dev < -1:
-            simple_notes.append("ราคาอยู่ต่ำกว่า VWAP: ฝั่งขายยังได้เปรียบ")
-        else:
-            simple_notes.append("ราคาใกล้ VWAP: ตลาดยังสมดุล")
-    if atrp is not None:
-        if atrp >= 5:
-            simple_notes.append("ATR% สูง: หุ้นแกว่งแรง ต้องวางแผนความเสี่ยงให้ดี")
-        else:
-            simple_notes.append("ATR% ไม่สูงมาก: ความผันผวนยังอยู่ในระดับที่พอควบคุมได้")
-    if acc_days is not None and dist_days is not None:
-        if acc_days > dist_days:
-            simple_notes.append("วันสะสมมากกว่าวันขาย: เริ่มมีภาพการเก็บของมากกว่ากระจายของ")
-        elif dist_days > acc_days:
-            simple_notes.append("วันขายมากกว่าวันสะสม: ต้องระวังแรงขายจากรายใหญ่")
-        else:
-            simple_notes.append("วันสะสมและวันขายใกล้กัน: ภาพเงินใหญ่ยังไม่ชัดเจน")
-    if updown is not None:
-        if updown >= 1.2:
-            simple_notes.append("Up/Down Volume Ratio ดี: Volume วันขึ้นมากกว่าวันลง สะท้อนเงินเข้า")
-        elif updown < 0.8:
-            simple_notes.append("Up/Down Volume Ratio อ่อน: Volume วันลงมากกว่า ต้องระวังเงินออก")
-    if clv is not None:
-        if clv >= 0.3:
-            simple_notes.append("Close Location Value ดี: ราคาปิดใกล้ High แปลว่าผู้ซื้อคุมเกม")
-        elif clv <= -0.3:
-            simple_notes.append("Close Location Value อ่อน: ราคาปิดใกล้ Low แปลว่าผู้ขายคุมเกม")
-    if pocket_count is not None and pocket_count >= 1:
-        simple_notes.append(f"มี Pocket Pivot {int(pocket_count)} ครั้งใน 20 วัน: เป็นร่องรอยแรงซื้อคุณภาพ")
-    if adl_div is not None and adl_div > 0:
-        simple_notes.append("ADL bullish divergence: ราคาอ่อนแต่เส้นสะสมยังดี อาจมีการเก็บของเงียบ")
-    elif adl_div is not None and adl_div < 0:
-        simple_notes.append("ADL bearish divergence: ราคาไปต่อแต่เงินสะสมไม่ตาม ระวังขึ้นหลอก")
-    if vpt_div is not None and vpt_div > 0:
-        simple_notes.append("VPT bullish divergence: Volume ยังสนับสนุนแม้ราคายังอ่อน")
-    elif vpt_div is not None and vpt_div < 0:
-        simple_notes.append("VPT bearish divergence: ราคาแข็งแต่ volume ไม่หนุน ต้องระวัง")
-    if rs_spy is not None:
-        if rs_spy > 3:
-            simple_notes.append("หุ้นแข็งกว่า SPY: ถือว่า outperform ตลาดในช่วงสั้น")
-        elif rs_spy < -3:
-            simple_notes.append("หุ้นอ่อนกว่า SPY: ยังแพ้ตลาดโดยรวม")
-        else:
-            simple_notes.append("หุ้นเคลื่อนไหวใกล้เคียงตลาด")
-
-    if simple_notes:
-        for i in range(0, len(simple_notes), 2):
-            cols = st.columns(2)
-            for j in range(2):
-                idx = i + j
-                if idx < len(simple_notes):
-                    with cols[j]:
-                        st.markdown(
-                            f"""
-                            <div class="quick-card">
-                                <h4>Insight {idx + 1}</h4>
-                                <p>{simple_notes[idx]}</p>
-                            </div>
-                            """,
-                            unsafe_allow_html=True,
-                        )
-    else:
-        st.info("ยังไม่มีข้อมูล Key Indicators เพียงพอสำหรับสรุปแบบภาษาง่าย")
+            st.info("ยังไม่มีข้อมูล Key Indicators เพียงพอสำหรับสรุปแบบภาษาง่าย")
 
 else:
     st.markdown(
