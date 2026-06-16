@@ -10,7 +10,10 @@ import xml.etree.ElementTree as ET
 
 import pandas as pd
 import requests
-import yfinance as yf
+try:
+    import yfinance as yf
+except Exception:  # optional runtime dependency
+    yf = None
 
 from .finra import fetch_regsho_daily_file
 
@@ -110,6 +113,8 @@ def collect_yfinance_options_proxy(ticker: str) -> tuple[Dict[str, Any], Dict[st
     Does not provide sweeps/aggressor side/gamma. Confidence is moderate-low.
     """
     try:
+        if yf is None:
+            return {}, _meta("public_option_chain_yfinance_proxy", 0.0, ["yfinance is not installed; cannot fetch public option chain proxy."], "failed")
         tk = yf.Ticker(ticker)
         expirations = list(tk.options or [])
         if not expirations:
@@ -350,6 +355,8 @@ def collect_yfinance_institutional_proxy(ticker: str) -> tuple[Dict[str, Any], D
     True 13F net-flow requires quarterly 13F data set aggregation; this proxy only uses public holders snapshots when available.
     """
     try:
+        if yf is None:
+            return {}, _meta("public_holders_yfinance_proxy", 0.0, ["yfinance is not installed; cannot fetch public holders snapshot."], "failed")
         tk = yf.Ticker(ticker)
         holders = None
         for attr in ["institutional_holders", "mutualfund_holders"]:
